@@ -1,0 +1,117 @@
+name: carrzz
+description: Cross-platform car Rental Application
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.2.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.6
+
+  # ---------------- MAP (FIXED POSITION) ----------------
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.0
+
+  device_info_plus: ^9.0.0
+  package_info_plus: ^4.0.0
+
+  # ---------------- STATE MANAGEMENT ----------------
+  provider: ^6.1.2
+  flutter_riverpod: ^2.5.1
+
+
+
+  # ---------------- NETWORK & API ----------------
+  http: ^1.2.1
+  dio: ^5.4.3+1
+  connectivity_plus: ^5.0.2
+
+  # ---------------- AUTHENTICATION ----------------
+  firebase_core: ^2.30.0
+  firebase_auth: ^4.19.4
+  google_sign_in: ^6.2.1
+
+  # ---------------- LOCAL STORAGE ----------------
+  shared_preferences: ^2.2.3
+  flutter_secure_storage: ^9.0.0
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+
+  # ---------------- MAPS & LOCATION ----------------
+  google_maps_flutter: ^2.6.1
+  geolocator: ^11.0.0
+  geocoding: ^3.0.0
+  permission_handler: ^11.3.1
+  location: ^5.0.0
+
+  # ---------------- IMAGE HANDLING ----------------
+  image_picker: ^1.1.1
+  cached_network_image: ^3.3.1
+
+  # ---------------- PUSH NOTIFICATIONS ----------------
+  firebase_messaging: ^14.9.2
+
+  # ---------------- CHAT ----------------
+  socket_io_client: ^3.0.2
+  web_socket_channel: ^2.4.0
+
+  # ---------------- PAYMENTS ----------------
+  razorpay_flutter: ^1.3.6
+
+  # ---------------- UI & ANIMATION ----------------
+  flutter_svg: ^2.0.10
+  lottie: ^3.1.0
+  shimmer: ^3.0.0
+  flutter_screenutil: ^5.9.0
+
+  # ---------------- ROUTING ----------------
+  go_router: ^14.1.1
+
+  # ---------------- FORMS & OTP ----------------
+  form_field_validator: ^1.1.0
+  pin_code_fields: ^8.0.1
+
+  # ---------------- UTILITIES ----------------
+  intl: ^0.19.0
+  uuid: ^4.4.0
+  logger: ^2.2.0
+  flutter_dotenv: ^5.1.0
+
+  # ---------------- DATABASE ----------------
+  cloud_firestore: ^4.17.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.2
+  flutter_launcher_icons: ^0.14.4
+  build_runner: ^2.4.9
+  hive_generator: ^2.0.1
+  image_picker: ^1.0.4  # Add this line
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/
+    - assets/images/
+    - assets/icons/
+    - assets/animations/
+    - assets/fonts/
+
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins-Regular.ttf
+        - asset: assets/fonts/Poppins-Bold.ttf
+          weight: 700
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon.png"
