@@ -129,8 +129,8 @@ If this is your first Flutter project, here are some helpful resources:
 Copyright Notice
 This project is proprietary and all rights are reserved. No permission is granted for any use, including commercial or non-commercial, beyond viewing and forking on GitHub as permitted by GitHub's Terms of Service.
 
-text
-© 2024 Carzzz. All Rights Reserved.
+
+© 2026 Carzzz. All Rights Reserved.
 Important: This is NOT open-source software. The code is provided for viewing and reference purposes only.
 
 🤝 Contributing
