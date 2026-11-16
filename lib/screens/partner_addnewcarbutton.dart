@@ -125,7 +125,7 @@ class _PartnerAddNewcarState extends State<PartnerAddNewcar> {
         ..files.add(await http.MultipartFile.fromPath('file', imageFile.path));
 
       final streamedResponse = await request.send().timeout(const Duration(seconds: 40));
-      final responseData = await streamedResponse.bytesToString();
+      final responseData = await streamedResponse.stream.bytesToString();
 
       if (streamedResponse.statusCode == 200 || streamedResponse.statusCode == 201) {
         final jsonResponse = json.decode(responseData);
