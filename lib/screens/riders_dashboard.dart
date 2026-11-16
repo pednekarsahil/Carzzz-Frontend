@@ -17,6 +17,8 @@ import 'rider_helpsupport.dart';
 import 'about_carrzzzriders.dart';
 import '../widgets/app_icon_or_image.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 class RidersDashboard extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -151,6 +153,10 @@ class _RidersDashboardState extends State<RidersDashboard> {
 
   Position? _currentPosition;
   String _locationError = '';
+
+  // Radar Map Controller & Defaults
+  final MapController _radarMapController = MapController();
+  static const LatLng _defaultRadarCenter = LatLng(28.6139, 77.2090);
 
   List<Map<String, dynamic>> _allcars = [];
   List<Map<String, dynamic>> _nearbycars = [];
@@ -2225,6 +2231,412 @@ class _RidersDashboardState extends State<RidersDashboard> {
     );
   }
 
+  LatLng? _getCarLatLng(Map<String, dynamic> car) {
+    try {
+      final loc = car['location'];
+      if (loc is Map) {
+        final latVal = loc['lat'] ?? loc['latitude'];
+        final lngVal = loc['lng'] ?? loc['longitude'];
+        if (latVal != null && lngVal != null) {
+          final double lat = (latVal is num) ? latVal.toDouble() : double.tryParse(latVal.toString()) ?? 0.0;
+          final double lng = (lngVal is num) ? lngVal.toDouble() : double.tryParse(lngVal.toString()) ?? 0.0;
+          if (lat != 0.0 && lng != 0.0) {
+            return LatLng(lat, lng);
+          }
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  LatLng _getOrGenerateCarPosition(Map<String, dynamic> car, LatLng userCenter, int index, int totalCars) {
+    final direct = _getCarLatLng(car);
+    if (direct != null) return direct;
+
+    final double distKm = (car['distance'] is num ? (car['distance'] as num).toDouble() : 3.5).clamp(0.8, 9.2);
+    final double angle = (index * 2.399963) + 0.5; // Golden ratio spiral angle for natural scatter
+    const double kmPerDegreeLat = 111.0;
+    final double latRad = userCenter.latitude * (math.pi / 180.0);
+    final double kmPerDegreeLng = 111.0 * math.cos(latRad);
+
+    final double dLat = (distKm / kmPerDegreeLat) * math.sin(angle);
+    final double dLng = (distKm / (kmPerDegreeLng.abs() > 0.01 ? kmPerDegreeLng : 111.0)) * math.cos(angle);
+
+    return LatLng(userCenter.latitude + dLat, userCenter.longitude + dLng);
+  }
+
+  Widget _buildCircularRadarMap() {
+    final LatLng center = _currentPosition != null
+        ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude)
+        : _defaultRadarCenter;
+
+    // Filter cars within 10 km radius
+    final List<Map<String, dynamic>> carsWithin10Km = _allcars.where((car) {
+      if (car['distance'] is num) {
+        return (car['distance'] as num).toDouble() <= 10.0;
+      }
+      return true;
+    }).toList();
+
+    // Build markers
+    final List<Marker> markers = [];
+
+    // User marker
+    markers.add(
+      Marker(
+        point: center,
+        width: 48,
+        height: 48,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFFFF5A1F).withOpacity(0.22),
+              ),
+            ),
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFF7A45), Color(0xFFFF5A1F)],
+                ),
+                border: Border.all(color: Colors.white, width: 2.5),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black45,
+                    blurRadius: 6,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.person, size: 14, color: Colors.white),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    // Car markers
+    for (int i = 0; i < carsWithin10Km.length; i++) {
+      final car = carsWithin10Km[i];
+      final LatLng pos = _getOrGenerateCarPosition(car, center, i, carsWithin10Km.length);
+
+      markers.add(
+        Marker(
+          point: pos,
+          width: 54,
+          height: 54,
+          child: GestureDetector(
+            onTap: () => _showcarDetailPopup(car),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFFFF7A45), Color(0xFFE04508)],
+                    ),
+                    border: Border.all(color: Colors.white, width: 2),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black45,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.directions_car_filled,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+                Container(
+                  margin: const EdgeInsets.only(top: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: const Color(0xDD1E140E),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: const Color(0x66FF5A1F), width: 0.8),
+                  ),
+                  child: Text(
+                    car['name'] != null && car['name'].toString().length > 7
+                        ? '${car['name'].toString().substring(0, 6)}..'
+                        : (car['name']?.toString() ?? 'Car'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 8,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // 10 km circle radius
+    final List<CircleMarker> circles = [
+      CircleMarker(
+        point: center,
+        radius: 10000, // 10,000 meters = 10 km
+        useRadiusInMeter: true,
+        color: const Color(0x18FF5A1F),
+        borderColor: const Color(0xFFFF5A1F),
+        borderStrokeWidth: 2,
+      ),
+      CircleMarker(
+        point: center,
+        radius: 5000, // 5 km inner boundary
+        useRadiusInMeter: true,
+        color: const Color(0x0CFF5A1F),
+        borderColor: const Color(0x55FF5A1F),
+        borderStrokeWidth: 1.2,
+      ),
+    ];
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF261912),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.12),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.35),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+          BoxShadow(
+            color: Colors.white.withOpacity(0.04),
+            blurRadius: 2,
+            offset: const Offset(0, -1),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Header info
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFFFF5A1F).withOpacity(0.18),
+                      border: Border.all(color: const Color(0xFFFF5A1F).withOpacity(0.4)),
+                    ),
+                    child: const Icon(Icons.radar, color: Color(0xFFFF5A1F), size: 18),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Nearby Cars Radar',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '${carsWithin10Km.length} cars within 10 km radius',
+                        style: const TextStyle(
+                          color: Color(0xFFFF9566),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              // Recenter action button (3D styled)
+              InkWell(
+                onTap: () {
+                  _radarMapController.move(center, 12.0);
+                },
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E140E),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0x33FF5A1F)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.my_location, size: 14, color: Color(0xFFFF5A1F)),
+                      SizedBox(width: 4),
+                      Text(
+                        'Center',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Circular Map with 3D Beveled Ring
+          Center(
+            child: Container(
+              width: 270,
+              height: 270,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFFFF7A45),
+                    Color(0xFFE04508),
+                    Color(0xFF8B2500),
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFFF5A1F).withOpacity(0.3),
+                    blurRadius: 18,
+                    spreadRadius: 2,
+                    offset: const Offset(0, 4),
+                  ),
+                  const BoxShadow(
+                    color: Colors.black54,
+                    blurRadius: 12,
+                    offset: Offset(0, 8),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(5),
+              child: ClipOval(
+                child: Stack(
+                  children: [
+                    FlutterMap(
+                      mapController: _radarMapController,
+                      options: MapOptions(
+                        initialCenter: center,
+                        initialZoom: 12.0,
+                        minZoom: 9.0,
+                        maxZoom: 16.0,
+                        interactionOptions: const InteractionOptions(
+                          flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+                        ),
+                      ),
+                      children: [
+                        TileLayer(
+                          urlTemplate: 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'com.carzzz.app',
+                          maxZoom: 19,
+                          minZoom: 3,
+                        ),
+                        CircleLayer(circles: circles),
+                        MarkerLayer(markers: markers),
+                      ],
+                    ),
+                    // Distance badge
+                    Positioned(
+                      top: 10,
+                      right: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.7),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFFF5A1F), width: 0.8),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.radar, color: Color(0xFFFF5A1F), size: 10),
+                            SizedBox(width: 3),
+                            Text(
+                              '10 km',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Legend & hint
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0xFFFF5A1F),
+                ),
+              ),
+              const SizedBox(width: 5),
+              const Text(
+                'Your Location',
+                style: TextStyle(color: Color(0xFFC7B8AF), fontSize: 11),
+              ),
+              const SizedBox(width: 16),
+              const Icon(Icons.directions_car_filled, size: 13, color: Color(0xFFFF7A45)),
+              const SizedBox(width: 4),
+              const Text(
+                'Tap car pin to rent',
+                style: TextStyle(color: Color(0xFFC7B8AF), fontSize: 11),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   // ========== REDESIGNED UI BUILD METHODS - LIGHT MODE ==========
   @override
   Widget build(BuildContext context) {
@@ -2757,6 +3169,10 @@ class _RidersDashboardState extends State<RidersDashboard> {
                     ],
                   ),
                 ),
+
+              // Circular 10km Radius Radar Map
+              _buildCircularRadarMap(),
+              const SizedBox(height: 16),
 
               // Nearby Cars Section
               const Row(
