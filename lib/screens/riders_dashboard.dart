@@ -152,6 +152,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
   }
 
   Set<String> _reservedcarIds = {};
+  String? _currentHeldCarId;
   Timer? _reservationCheckTimer;
 
   bool _isLoadingcars = true;
@@ -270,7 +271,6 @@ class _RidersDashboardState extends State<RidersDashboard> {
     super.initState();
     _initSocket();
     _requestLocationPermission();
-    _startSilentRefreshTimer();
   }
 
   @override
@@ -285,14 +285,10 @@ class _RidersDashboardState extends State<RidersDashboard> {
   }
 
   void _startSilentRefreshTimer() {
-    _silentRefreshTimer = Timer.periodic(
-      const Duration(seconds: 10),
-          (timer) {
-        if (mounted && _selectedIndex == 0) {
-          _silentRefreshcars();
-        }
-      },
-    );
+    // Periodic silent refresh timer disabled to avoid repeatedly refreshing the page.
+    // Real-time updates are driven by Socket.IO events and user pull-to-refresh.
+    _silentRefreshTimer?.cancel();
+    _silentRefreshTimer = null;
   }
 
   Future<void> _silentRefreshcars() async {
@@ -310,15 +306,9 @@ class _RidersDashboardState extends State<RidersDashboard> {
         final data = json.decode(response.body);
         if (data['success'] == true && data['cars'] != null) {
           final carsList = data['cars'] as List;
-          final String currentUserId = widget.userData['id']?.toString() ?? widget.userData['_id']?.toString() ?? '';
           final availablecars = carsList.where((car) {
             final status = car['status'];
-            if (status == 'available') return true;
-            if ((status == 'held' || status == 'hold') &&
-                (car['heldBy'] == currentUserId || _reservedcarIds.contains(car['_id'] ?? car['id']))) {
-              return true;
-            }
-            return false;
+            return status != 'rented';
           }).toList();
 
           final processedcars = availablecars.map((car) {
@@ -406,6 +396,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
   }
 
   Future<void> _reservecar(String carId) async {
+    _currentHeldCarId = carId;
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
@@ -428,10 +419,11 @@ class _RidersDashboardState extends State<RidersDashboard> {
         final data = json.decode(response.body);
         if (data['success'] == true) {
           print('✅ Car hold created successfully for 10 minutes');
-          setState(() {
-            _reservedcarIds.add(carId);
-          });
-          await _loadcarsFromBackend();
+          if (mounted) {
+            setState(() {
+              _reservedcarIds.add(carId);
+            });
+          }
           _startReservationChecker();
         }
       } else if (response.statusCode == 409) {
@@ -471,6 +463,9 @@ class _RidersDashboardState extends State<RidersDashboard> {
       if (mounted) {
         setState(() {
           _reservedcarIds.remove(carId);
+          if (_currentHeldCarId == carId) {
+            _currentHeldCarId = null;
+          }
         });
         await _loadcarsFromBackend();
       }
@@ -558,15 +553,9 @@ class _RidersDashboardState extends State<RidersDashboard> {
           final carsList = data['cars'] as List;
           print('✅ Received ${carsList.length} cars from backend');
 
-          final String currentUserId = widget.userData['id']?.toString() ?? widget.userData['_id']?.toString() ?? '';
           final availablecars = carsList.where((car) {
             final status = car['status'];
-            if (status == 'available') return true;
-            if ((status == 'held' || status == 'hold') &&
-                (car['heldBy'] == currentUserId || _reservedcarIds.contains(car['_id'] ?? car['id']))) {
-              return true;
-            }
-            return false;
+            return status != 'rented';
           }).toList();
 
           print('📊 Available cars count: ${availablecars.length}');
@@ -809,15 +798,23 @@ class _RidersDashboardState extends State<RidersDashboard> {
         if (data['success'] == true) {
           final activeReservations = Set<String>.from(data['reservedCarIds'] ?? []);
 
-          if (mounted) {
-            setState(() {
-              _reservedcarIds = activeReservations;
-            });
+          final bool changed = activeReservations.length != _reservedcarIds.length ||
+              !activeReservations.containsAll(_reservedcarIds);
+
+          if (changed) {
+            if (mounted) {
+              setState(() {
+                _reservedcarIds = activeReservations;
+              });
+            }
+
+            await _loadcarsFromBackend();
+            print('📊 Active holds changed: ${_reservedcarIds.length}');
           }
 
-          await _loadcarsFromBackend();
-
-          print('📊 Active holds: ${_reservedcarIds.length}');
+          if (activeReservations.isEmpty) {
+            _reservationCheckTimer?.cancel();
+          }
         }
       }
     } catch (e) {
@@ -1545,9 +1542,14 @@ class _RidersDashboardState extends State<RidersDashboard> {
       final bool hasDriving = (prefs.getBool('has_uploaded_driving_$userId') ?? prefs.getBool('has_uploaded_driving') ?? false) ||
           (prefs.getString('driving_licence_image_$userId')?.isNotEmpty ?? false) ||
           (prefs.getString('driving_licence_image')?.isNotEmpty ?? false) ||
+          (prefs.getString('driving_license_image_$userId')?.isNotEmpty ?? false) ||
+          (prefs.getString('driving_license_image')?.isNotEmpty ?? false) ||
           (widget.userData['hasUploadedDrivingLicence'] == true) ||
+          (widget.userData['hasUploadedDrivingLicense'] == true) ||
           (widget.userData['drivingLicence'] != null && widget.userData['drivingLicence'].toString().isNotEmpty) ||
-          (widget.userData['drivingLicenceImage'] != null && widget.userData['drivingLicenceImage'].toString().isNotEmpty);
+          (widget.userData['drivingLicense'] != null && widget.userData['drivingLicense'].toString().isNotEmpty) ||
+          (widget.userData['drivingLicenceImage'] != null && widget.userData['drivingLicenceImage'].toString().isNotEmpty) ||
+          (widget.userData['drivingLicenseImage'] != null && widget.userData['drivingLicenseImage'].toString().isNotEmpty);
 
       return hasPan && hasDriving;
     } catch (e) {
@@ -1633,6 +1635,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
   }
 
   void _showcarDetailPopup(Map<String, dynamic> car) {
+    final BuildContext dashboardContext = context;
     _activeDetailCarId = car['id']?.toString();
     _activeDetailCar = car;
     int currentImageIndex = 0;
@@ -1641,11 +1644,11 @@ class _RidersDashboardState extends State<RidersDashboard> {
     _fetchCarReviews(car['id']?.toString() ?? '');
 
     showModalBottomSheet(
-      context: context,
+      context: dashboardContext,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setStatePopup) {
+      builder: (bottomSheetContext) => StatefulBuilder(
+        builder: (popupContext, setStatePopup) {
           _activeCarDetailSetState = setStatePopup;
 
           // Always get latest reviews list
@@ -1671,7 +1674,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
           }
 
           return Container(
-            height: MediaQuery.of(context).size.height * 0.85,
+            height: MediaQuery.of(popupContext).size.height * 0.85,
             decoration: const BoxDecoration(
               color: Color(0xFFFAF7F4),
               borderRadius: BorderRadius.only(
@@ -2030,24 +2033,35 @@ class _RidersDashboardState extends State<RidersDashboard> {
                           child: GestureDetector(
                             onTap: () async {
                               final bool hasDocs = await _checkUserDocumentsUploaded();
+                              if (!mounted) return;
                               if (!hasDocs) {
+                                Navigator.pop(bottomSheetContext);
                                 _showDocumentRequiredDialog();
                                 return;
                               }
-                              Navigator.pop(context);
-                              await _reservecar(car['id']);
+                              Navigator.pop(bottomSheetContext);
+                              _currentHeldCarId = car['id'];
+                              _reservecar(car['id']);
                               final result = await Navigator.push(
-                                context,
+                                dashboardContext,
                                 MaterialPageRoute(
                                   builder: (context) => RiderPriceBreakup(
                                     carData: car,
                                     userData: widget.userData,
                                     isDarkMode: false,
+                                    onCancelHold: () {
+                                      if (_currentHeldCarId != null) {
+                                        _releasecar(_currentHeldCarId!);
+                                        _currentHeldCarId = null;
+                                      }
+                                    },
                                   ),
                                 ),
                               );
 
+                              if (!mounted) return;
                               if (result != null && result == true) {
+                                _currentHeldCarId = null;
                                 setState(() {
                                   _selectedIndex = 1;
                                 });
@@ -2056,7 +2070,12 @@ class _RidersDashboardState extends State<RidersDashboard> {
                                 _showSnackBar('Your car is booked! Check your ongoing ride in My Rides.');
                               } else {
                                 // User backed out without paying - release hold immediately
-                                await _releasecar(car['id']);
+                                if (_currentHeldCarId != null) {
+                                  await _releasecar(_currentHeldCarId!);
+                                  _currentHeldCarId = null;
+                                } else {
+                                  await _releasecar(car['id']);
+                                }
                               }
                             },
                             child: Container(
@@ -4085,6 +4104,12 @@ class _RidersDashboardState extends State<RidersDashboard> {
             _showFilterMenu = false;
             if (index == 1) {
               _loadMyRides();
+            } else if (index == 0) {
+              if (_currentHeldCarId != null) {
+                _releasecar(_currentHeldCarId!);
+                _currentHeldCarId = null;
+              }
+              _loadcarsFromBackend();
             }
           });
         },
@@ -4865,6 +4890,11 @@ class _RidersDashboardState extends State<RidersDashboard> {
                     setState(() {
                       _selectedIndex = 0;
                     });
+                    if (_currentHeldCarId != null) {
+                      _releasecar(_currentHeldCarId!);
+                      _currentHeldCarId = null;
+                    }
+                    _loadcarsFromBackend();
                   },
                   borderRadius: BorderRadius.circular(14),
                   child: Container(

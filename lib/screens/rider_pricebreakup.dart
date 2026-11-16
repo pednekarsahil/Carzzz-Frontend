@@ -17,12 +17,14 @@ class RiderPriceBreakup extends StatefulWidget {
   final Map<String, dynamic> carData;
   final Map<String, dynamic> userData;
   final bool isDarkMode;
+  final VoidCallback? onCancelHold; // callback to release hold when user aborts
 
   const RiderPriceBreakup({
     super.key,
     required this.carData,
     required this.userData,
     required this.isDarkMode,
+    this.onCancelHold,
   });
 
   @override
@@ -729,7 +731,12 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
   Widget build(BuildContext context) {
     const bool isDark = false;
 
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: () async {
+        widget.onCancelHold?.call();
+        return true;
+      },
+      child: Scaffold(
       backgroundColor: const Color(0xFFEDE1D5),
       appBar: AppBar(
         title: const Text('Price Breakup', style: TextStyle(color: Color(0xFF2B1B12), fontWeight: FontWeight.bold)),
@@ -738,7 +745,10 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(0xFF2B1B12)),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            widget.onCancelHold?.call();
+            Navigator.pop(context);
+          },
         ),
       ),
       body: Container(
@@ -1690,6 +1700,7 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
             ),
           ),
         ],
+      ),
       ),
       ),
     );

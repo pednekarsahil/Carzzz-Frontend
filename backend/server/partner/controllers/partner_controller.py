@@ -1260,9 +1260,30 @@ async def get_all_cars(request: Request):
     car_collection = db.partnercars
     partner_collection = db.partners
     
-    # Fetch all cars that are available and active
+    # Auto-release any expired holds so cars don't remain stuck
+    now = datetime.utcnow()
+    try:
+        await car_collection.update_many(
+            {
+                "status": "held",
+                "$or": [
+                    {"heldUntil": {"$lte": now}},
+                    {"heldUntil": None}
+                ]
+            },
+            {"$set": {"status": "available", "heldBy": None, "heldUntil": None, "updatedAt": now}}
+        )
+        if hasattr(db, "car_holds"):
+            await db.car_holds.update_many(
+                {"status": "active", "holdExpiresAt": {"$lte": now}},
+                {"$set": {"status": "expired", "updatedAt": now}}
+            )
+    except Exception as e:
+        logger.warning(f"Error auto-releasing expired holds: {e}")
+
+    # Fetch all cars that are available or held (not rented) and active
     cars_cursor = car_collection.find({
-        "status": "available",
+        "status": {"$in": ["available", "held", "hold"]},
         "isActive": True
     }).sort("createdAt", -1)
     

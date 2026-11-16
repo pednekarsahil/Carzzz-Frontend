@@ -544,35 +544,20 @@ async def release_car_hold(request: Request, car_id: str, user: dict = Depends(a
             "status": "active"
         })
         
-        if not hold:
-            return JSONResponse(
-                status_code=404,
-                content={
-                    "success": False,
-                    "message": "No active hold found for this car"
-                }
-            )
-        
-        # Check if user owns the hold
-        if hold.get('userId') != user_id:
-            return JSONResponse(
-                status_code=403,
-                content={
-                    "success": False,
-                    "message": "You do not own this hold"
-                }
-            )
-        
-        # Release the hold
         now = datetime.utcnow()
-        await hold_collection.update_one(
-            {"_id": hold['_id']},
-            {"$set": {"status": "released", "releasedAt": now, "updatedAt": now}}
-        )
+        if hold:
+            # Release the hold in hold_collection
+            await hold_collection.update_one(
+                {"_id": hold['_id']},
+                {"$set": {"status": "released", "releasedAt": now, "updatedAt": now}}
+            )
+        
+        # Build query for car - supporting ObjectId or string
+        car_filter = {"$or": [{"_id": ObjectId(car_id)}, {"_id": car_id}]} if ObjectId.is_valid(car_id) else {"_id": car_id}
         
         # Update car status back to available
         await car_collection.update_one(
-            {"_id": car_id},
+            car_filter,
             {"$set": {"status": "available", "heldBy": None, "heldUntil": None, "updatedAt": now}}
         )
         
