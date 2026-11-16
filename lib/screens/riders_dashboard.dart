@@ -1356,14 +1356,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(5, (index) {
-                    final reviews = carData['reviews'] is List<CarReview> ? carData['reviews'] as List<CarReview> : <CarReview>[];
-    double displayRating = rating;
-    if (displayRating == 0.0 && reviews.isNotEmpty) {
-      final totalStars = reviews.fold<double>(0.0, (sum, r) => sum + r.rating);
-      displayRating = double.parse((totalStars / reviews.length).toStringAsFixed(1));
-    }
-
-    return GestureDetector(
+                    return GestureDetector(
                       onTap: () {
                         setStatePopup(() {
                           selectedRating = (index + 1).toDouble();
