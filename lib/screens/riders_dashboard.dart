@@ -2784,7 +2784,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                                       color: Colors.white,
                                       borderRadius: BorderRadius.circular(10),
                                       border: Border.all(color: const Color(0xFFFDBA74)),
-                                    ],
+                                    ),
                                     child: Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
