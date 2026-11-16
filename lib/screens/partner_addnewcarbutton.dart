@@ -113,6 +113,35 @@ class _PartnerAddNewcarState extends State<PartnerAddNewcar> {
     }
   }
 
+  Future<String?> _uploadImageToCloudinary(XFile imageFile) async {
+    try {
+      const String cloudName = 'cyxukrg0';
+      const String uploadPreset = 'carzzz_cars';
+
+      final uri = Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload');
+
+      final request = http.MultipartRequest('POST', uri)
+        ..fields['upload_preset'] = uploadPreset
+        ..files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 40));
+      final responseData = await streamedResponse.bytesToString();
+
+      if (streamedResponse.statusCode == 200 || streamedResponse.statusCode == 201) {
+        final jsonResponse = json.decode(responseData);
+        final String? secureUrl = jsonResponse['secure_url'];
+        print('✅ Cloudinary upload success: $secureUrl');
+        return secureUrl;
+      } else {
+        print('❌ Cloudinary upload failed (${streamedResponse.statusCode}): $responseData');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Error uploading to Cloudinary: $e');
+      return null;
+    }
+  }
+
   void _removeImage(int index) {
     setState(() {
       _carImages.removeAt(index);
@@ -195,6 +224,22 @@ class _PartnerAddNewcarState extends State<PartnerAddNewcar> {
         throw Exception('No authentication token found');
       }
 
+      // Upload images to Cloudinary
+      final List<String> uploadedImageUrls = [];
+      for (int i = 0; i < _carImages.length; i++) {
+        final img = _carImages[i];
+        if (img.path.startsWith('http://') || img.path.startsWith('https://')) {
+          uploadedImageUrls.add(img.path);
+        } else {
+          final url = await _uploadImageToCloudinary(img);
+          if (url != null) {
+            uploadedImageUrls.add(url);
+          } else {
+            uploadedImageUrls.add(img.path);
+          }
+        }
+      }
+
       // Prepare car data
       final carData = {
         'model': _modelController.text.trim(),
@@ -213,7 +258,7 @@ class _PartnerAddNewcarState extends State<PartnerAddNewcar> {
           'validUntil': DateTime.now().add(const Duration(days: 30)).toIso8601String()
         }
             : null,
-        'images': _carImages.map((img) => img.path).toList(),
+        'images': uploadedImageUrls,
       };
 
       final response = await http.post(
@@ -239,7 +284,7 @@ class _PartnerAddNewcarState extends State<PartnerAddNewcar> {
           'rating': 0.0,
           'reviewCount': 0,
           'location': {'lat': _selectedLocation!.latitude, 'lng': _selectedLocation!.longitude},
-          'images': _carImages.map((img) => img.path).toList(),
+          'images': uploadedImageUrls,
           'description': _descriptionController.text.trim(),
           'offer': _selectedOffer != 'No Offer' ? _selectedOffer : null,
           'registrationNumber': _registrationController.text.trim(),
@@ -487,7 +532,9 @@ class _PartnerAddNewcarState extends State<PartnerAddNewcar> {
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(12),
                                       image: DecorationImage(
-                                        image: FileImage(File(_carImages[index].path)),
+                                        image: _carImages[index].path.startsWith('http')
+                                            ? NetworkImage(_carImages[index].path) as ImageProvider
+                                            : FileImage(File(_carImages[index].path)),
                                         fit: BoxFit.cover,
                                       ),
                                     ),

@@ -10,6 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:io';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
 class PartnerEditcar extends StatefulWidget {
@@ -412,7 +414,9 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(12),
                                       image: DecorationImage(
-                                        image: FileImage(File(_carImages[index].path)),
+                                        image: _carImages[index].path.startsWith('http')
+                                            ? NetworkImage(_carImages[index].path) as ImageProvider
+                                            : FileImage(File(_carImages[index].path)),
                                         fit: BoxFit.cover,
                                       ),
                                     ),
@@ -794,7 +798,36 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
     }
   }
 
-  void _saveChanges() {
+  Future<String?> _uploadImageToCloudinary(XFile imageFile) async {
+    try {
+      const String cloudName = 'cyxukrg0';
+      const String uploadPreset = 'carzzz_cars';
+
+      final uri = Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload');
+
+      final request = http.MultipartRequest('POST', uri)
+        ..fields['upload_preset'] = uploadPreset
+        ..files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 40));
+      final responseData = await streamedResponse.bytesToString();
+
+      if (streamedResponse.statusCode == 200 || streamedResponse.statusCode == 201) {
+        final jsonResponse = json.decode(responseData);
+        final String? secureUrl = jsonResponse['secure_url'];
+        print('✅ Cloudinary upload success: $secureUrl');
+        return secureUrl;
+      } else {
+        print('❌ Cloudinary upload failed (${streamedResponse.statusCode}): $responseData');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Error uploading to Cloudinary: $e');
+      return null;
+    }
+  }
+
+  Future<void> _saveChanges() async {
     if (!_formKey.currentState!.validate()) return;
     if (_carImages.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -806,6 +839,22 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
       return;
     }
     _formKey.currentState!.save();
+
+    // Upload any newly picked images to Cloudinary
+    final List<String> uploadedImageUrls = [];
+    for (int i = 0; i < _carImages.length; i++) {
+      final img = _carImages[i];
+      if (img.path.startsWith('http://') || img.path.startsWith('https://')) {
+        uploadedImageUrls.add(img.path);
+      } else {
+        final url = await _uploadImageToCloudinary(img);
+        if (url != null) {
+          uploadedImageUrls.add(url);
+        } else {
+          uploadedImageUrls.add(img.path);
+        }
+      }
+    }
 
     // Create updated car data map
     final updatedcar = {
@@ -821,7 +870,7 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
         'lat': _carLocation.latitude,
         'lng': _carLocation.longitude,
       },
-      'images': _carImages.map((img) => img.path).toList(),
+      'images': uploadedImageUrls,
       'description': _description,
       'offer': _selectedOffer != 'No Offer' ? _selectedOffer : null,
     };
