@@ -66,24 +66,28 @@ class Ride {
 
   factory Ride.fromJson(Map<String, dynamic> json) {
     return Ride(
-      id: json['_id'] ?? json['id'] ?? '',
-      carName: json['carName'] ?? json['carModel'],
-      carModel: json['carModel'] ?? '',
+      id: (json['_id'] ?? json['id'] ?? '').toString(),
+      carName: (json['carName'] ?? json['carModel'] ?? '').toString(),
+      carModel: (json['carModel'] ?? '').toString(),
       amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
-      bookingDate: DateTime.parse(json['bookingDate'] ?? json['createdAt']),
-      status: json['status'] ?? 'active',
-      paymentId: json['paymentId'] ?? '',
-      carId: json['carId'] ?? '',
+      bookingDate: json['bookingDate'] != null
+          ? (DateTime.tryParse(json['bookingDate'].toString()) ?? DateTime.now())
+          : (json['createdAt'] != null
+              ? (DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now())
+              : DateTime.now()),
+      status: json['status']?.toString() ?? 'active',
+      paymentId: json['paymentId']?.toString() ?? '',
+      carId: (json['carId'] ?? '').toString(),
       startDateTime: json['rentalDetails']?['startDateTime'] != null
-          ? DateTime.parse(json['rentalDetails']['startDateTime'])
+          ? DateTime.tryParse(json['rentalDetails']['startDateTime'].toString())
           : null,
       endDateTime: json['rentalDetails']?['endDateTime'] != null
-          ? DateTime.parse(json['rentalDetails']['endDateTime'])
+          ? DateTime.tryParse(json['rentalDetails']['endDateTime'].toString())
           : null,
       handoverDate: json['handoverDate'] != null
-          ? DateTime.parse(json['handoverDate'])
+          ? DateTime.tryParse(json['handoverDate'].toString())
           : null,
-      rentalType: json['rentalDetails']?['rentalType'] ?? 'fullday',
+      rentalType: json['rentalDetails']?['rentalType']?.toString() ?? 'fullday',
     );
   }
 }
@@ -106,12 +110,12 @@ class CarReview {
 
   factory CarReview.fromJson(Map<String, dynamic> json) {
     return CarReview(
-      id: json['_id'] ?? json['id'],
-      userName: json['userName'] ?? json['user'] ?? 'Anonymous',
-      rating: (json['rating'] as num).toDouble(),
-      comment: json['comment'] ?? '',
+      id: (json['_id'] ?? json['id'] ?? '').toString(),
+      userName: (json['userName'] ?? json['user'] ?? 'Anonymous').toString(),
+      rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
+      comment: (json['comment'] ?? '').toString(),
       createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
+          ? (DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now())
           : DateTime.now(),
     );
   }
@@ -734,8 +738,9 @@ class _RidersDashboardState extends State<RidersDashboard> {
     );
   }
 
-  String _getCategoryFromType(String type) {
-    switch (type.toLowerCase()) {
+  String _getCategoryFromType(dynamic type) {
+    if (type == null) return 'Casual Car';
+    switch (type.toString().toLowerCase()) {
       case 'scooter':
         return 'Casual Car';
       case 'motorcycle':

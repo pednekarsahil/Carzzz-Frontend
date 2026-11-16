@@ -1281,12 +1281,13 @@ async def get_all_cars(request: Request):
         reviews = car.get('reviews', [])
         formatted_reviews = []
         for r in reviews:
+            rev_id = str(r.get('_id')) if r.get('_id') else (str(r.get('id')) if r.get('id') else "")
             formatted_reviews.append({
-                "id": str(r.get('_id')) if '_id' in r else None,
-                "userName": r.get('userName'),
-                "rating": r.get('rating'),
-                "comment": r.get('comment'),
-                "createdAt": r.get('createdAt').isoformat() if r.get('createdAt') else None
+                "id": rev_id,
+                "userName": r.get('userName') or 'Anonymous',
+                "rating": r.get('rating', 5.0),
+                "comment": r.get('comment', ''),
+                "createdAt": r.get('createdAt').isoformat() if hasattr(r.get('createdAt'), 'isoformat') else (str(r.get('createdAt')) if r.get('createdAt') else None)
             })
 
         calculated_rating = car.get('rating', 0)
@@ -2116,12 +2117,13 @@ async def get_car_reviews(request: Request, car_id: str):
     
     formatted_reviews = []
     for r in reviews:
+        rev_id = str(r.get('_id')) if r.get('_id') else (str(r.get('id')) if r.get('id') else "")
         formatted_reviews.append({
-            "id": str(r.get('_id')) if '_id' in r else None,
-            "userName": r.get('userName'),
-            "rating": r.get('rating'),
-            "comment": r.get('comment'),
-            "createdAt": r.get('createdAt').isoformat() if r.get('createdAt') else None
+            "id": rev_id,
+            "userName": r.get('userName') or 'Anonymous',
+            "rating": r.get('rating', 5.0),
+            "comment": r.get('comment', ''),
+            "createdAt": r.get('createdAt').isoformat() if hasattr(r.get('createdAt'), 'isoformat') else (str(r.get('createdAt')) if r.get('createdAt') else None)
         })
     
     calculated_rating = car.get('rating', 0)
