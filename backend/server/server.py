@@ -271,16 +271,28 @@ async def lifespan(app: FastAPI):
     logger.info("Starting up...")
     
     # Connect to MongoDB
-    # Connect to MongoDB
     mongodb_uri = os.getenv('MONGODB_URI')
-    database_name = os.getenv('DATABASE_NAME',""" 'bikerzzz'""")  # Default fallback
+    raw_db_name = os.getenv('DATABASE_NAME', '')
+    database_name = raw_db_name.strip().strip("'").strip('"').strip() if raw_db_name else ''
 
     try:
         db_client = AsyncIOMotorClient(mongodb_uri)
-        # Use environment variable for database name
+        # If no explicit valid DATABASE_NAME is set, try to get from default database in URI or fallback to 'bikerzzz'
+        if not database_name:
+            try:
+                default_db = db_client.get_default_database()
+                if default_db is not None and default_db.name:
+                    database_name = default_db.name.strip().strip("'").strip('"').strip()
+            except Exception:
+                pass
+
+        if not database_name:
+            database_name = 'bikerzzz'
+
+        # Use sanitized environment variable for database name
         db = db_client[database_name]
         await db_client.admin.command('ping')
-        logger.info("✅ MongoDB connected successfully")
+        logger.info(f"✅ MongoDB connected successfully to database: {database_name}")
     except Exception as e:
         logger.error(f"❌ MongoDB connection error: {str(e)}")
         sys.exit(1)
