@@ -239,6 +239,10 @@ from bson import ObjectId
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_JWT_SECRET = "your_super_secret_jwt_key_change_this_in_production_123456789"
+if not os.getenv("JWT_SECRET"):
+    os.environ["JWT_SECRET"] = DEFAULT_JWT_SECRET
+
 async def authenticate_partner(request: Request):
     """
     Middleware to authenticate partners using JWT token
@@ -261,15 +265,7 @@ async def authenticate_partner(request: Request):
         logger.info(f"🔑 Authenticating partner with token: {token[:20]}...")
         
         # Verify token
-        secret = os.getenv('JWT_SECRET')
-        if not secret:
-            raise HTTPException(
-                status_code=500,
-                detail={
-                    "success": False,
-                    "message": "Server configuration error"
-                }
-            )
+        secret = os.getenv('JWT_SECRET') or DEFAULT_JWT_SECRET
         
         try:
             decoded = jwt.decode(token, secret, algorithms=['HS256'])

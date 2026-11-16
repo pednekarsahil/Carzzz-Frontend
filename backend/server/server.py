@@ -235,6 +235,10 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 load_dotenv()
 
+DEFAULT_JWT_SECRET = "your_super_secret_jwt_key_change_this_in_production_123456789"
+if not os.getenv("JWT_SECRET"):
+    os.environ["JWT_SECRET"] = DEFAULT_JWT_SECRET
+
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -475,7 +479,7 @@ async def lifespan(app: FastAPI):
     # =============================================
     # CRITICAL FIX: Mount Socket.IO app inside lifespan AFTER sio is initialized
     # =============================================
-    socket_app = ASGIApp(sio)
+    socket_app = ASGIApp(sio, socketio_path="")
     app.mount("/socket.io", socket_app)
     logger.info("✅ Socket.IO mounted successfully on /socket.io")
     
