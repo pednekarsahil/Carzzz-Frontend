@@ -605,16 +605,6 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
       if (orderResponse.statusCode == 200 || orderResponse.statusCode == 201) {
         final orderData = json.decode(orderResponse.body);
         if (orderData['success'] == true) {
-          // ========== FIXED: Release hold using the hold endpoint ==========
-          try {
-            await http.delete(
-              Uri.parse('$_baseUrl/api/cars/hold/${widget.carData['id']}'),  // Changed from release-reservation to hold
-              headers: {'Authorization': 'Bearer $token'},
-            );
-          } catch (e) {
-            print('Error releasing hold: $e');
-          }
-
           if (mounted) {
             // Show professional success screen
             await _showSuccessScreen();

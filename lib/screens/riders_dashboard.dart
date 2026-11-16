@@ -308,7 +308,13 @@ class _RidersDashboardState extends State<RidersDashboard> {
           final carsList = data['cars'] as List;
           final availablecars = carsList.where((car) {
             final status = car['status'];
-            return status != 'rented';
+            if (status == 'rented') return false;
+            final carId = (car['_id'] ?? car['id'])?.toString();
+            final isCurrentlyRentedByUser = _myRides.any((r) =>
+                r.carId == carId &&
+                (r.status == 'active' || r.status == 'confirmed' || r.status == 'ongoing'));
+            if (isCurrentlyRentedByUser) return false;
+            return true;
           }).toList();
 
           final processedcars = availablecars.map((car) {
@@ -555,7 +561,13 @@ class _RidersDashboardState extends State<RidersDashboard> {
 
           final availablecars = carsList.where((car) {
             final status = car['status'];
-            return status != 'rented';
+            if (status == 'rented') return false;
+            final carId = (car['_id'] ?? car['id'])?.toString();
+            final isCurrentlyRentedByUser = _myRides.any((r) =>
+                r.carId == carId &&
+                (r.status == 'active' || r.status == 'confirmed' || r.status == 'ongoing'));
+            if (isCurrentlyRentedByUser) return false;
+            return true;
           }).toList();
 
           print('📊 Available cars count: ${availablecars.length}');
@@ -2064,9 +2076,13 @@ class _RidersDashboardState extends State<RidersDashboard> {
                                 _currentHeldCarId = null;
                                 setState(() {
                                   _selectedIndex = 1;
+                                  _allcars.removeWhere((c) => c['id'] == car['id']);
+                                  _nearbycars.removeWhere((c) => c['id'] == car['id']);
+                                  _filteredcars.removeWhere((c) => c['id'] == car['id']);
                                 });
                                 await Future.delayed(const Duration(milliseconds: 500));
                                 await _loadMyRides();
+                                await _loadcarsFromBackend();
                                 _showSnackBar('Your car is booked! Check your ongoing ride in My Rides.');
                               } else {
                                 // User backed out without paying - release hold immediately

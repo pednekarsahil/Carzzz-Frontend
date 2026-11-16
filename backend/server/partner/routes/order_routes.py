@@ -553,7 +553,12 @@ async def release_car_hold(request: Request, car_id: str, user: dict = Depends(a
             )
         
         # Build query for car - supporting ObjectId or string
-        car_filter = {"$or": [{"_id": ObjectId(car_id)}, {"_id": car_id}]} if ObjectId.is_valid(car_id) else {"_id": car_id}
+        # Only update status to "available" if the car is NOT currently rented
+        target_ids = [ObjectId(car_id), car_id] if ObjectId.is_valid(car_id) else [car_id]
+        car_filter = {
+            "_id": {"$in": target_ids},
+            "status": {"$ne": "rented"}
+        }
         
         # Update car status back to available
         await car_collection.update_one(

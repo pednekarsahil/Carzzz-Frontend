@@ -1278,8 +1278,26 @@ async def get_all_cars(request: Request):
                 {"status": "active", "holdExpiresAt": {"$lte": now}},
                 {"$set": {"status": "expired", "updatedAt": now}}
             )
+
+        # Ensure any car with an active confirmed/ongoing order is marked 'rented'
+        if hasattr(db, "orders"):
+            active_orders = await db.orders.find(
+                {"status": {"$in": ["confirmed", "pending", "active", "ongoing"]}},
+                {"carId": 1}
+            ).to_list(length=None)
+            active_car_ids = [o.get("carId") for o in active_orders if o.get("carId")]
+            if active_car_ids:
+                sync_ids = []
+                for cid in active_car_ids:
+                    if ObjectId.is_valid(cid):
+                        sync_ids.append(ObjectId(cid))
+                    sync_ids.append(cid)
+                await car_collection.update_many(
+                    {"_id": {"$in": sync_ids}, "status": {"$ne": "rented"}},
+                    {"$set": {"status": "rented", "heldBy": None, "heldUntil": None, "updatedAt": now}}
+                )
     except Exception as e:
-        logger.warning(f"Error auto-releasing expired holds: {e}")
+        logger.warning(f"Error auto-releasing expired holds or syncing rented status: {e}")
 
     # Fetch all cars that are available or held (not rented) and active
     cars_cursor = car_collection.find({
