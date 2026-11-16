@@ -40,19 +40,19 @@ class _RiderForgotPasswordScreenState extends State<RiderForgotPasswordScreen>
   int _resendTimer = 0;
   bool _canResendOtp = false;
 
-  // Blue theme color
-  final Color _primaryColor = const Color(0xFF3B82F6);
+  // Terracotta orange theme color
+  final Color _primaryColor = const Color(0xFFFF5A1F);
 
   // CHANGE THIS MANUALLY:
 // Set to false for emulator, true for physical device
-  static const bool _usePhysicalDevice = true;  // ← Change this
+  static const bool _usePhysicalDevice = false;  // ← Change this
 
 // Get base URL based on your selection
   String get _baseUrl {
     if (_usePhysicalDevice) {
       return 'http://10.0.2.2:3000/api';  // Your computer IP for physical device
     } else {
-      return 'https://bikerzzz-backend.onrender.com/api';     // Emulator IP
+      return 'https://carzzz-frontend.onrender.com/api';     // Emulator IP
     }
   }
   @override
@@ -371,13 +371,13 @@ class _RiderForgotPasswordScreenState extends State<RiderForgotPasswordScreen>
         Container(
           width: 40,
           height: 2,
-          color: _currentStep >= 2 ? _primaryColor : Colors.grey[300],
+          color: _currentStep >= 2 ? _primaryColor : const Color(0xFFE5D7C9),
         ),
         _buildStepCircle(2, 'OTP'),
         Container(
           width: 40,
           height: 2,
-          color: _currentStep >= 3 ? _primaryColor : Colors.grey[300],
+          color: _currentStep >= 3 ? _primaryColor : const Color(0xFFE5D7C9),
         ),
         _buildStepCircle(3, 'Reset'),
       ],
@@ -395,8 +395,8 @@ class _RiderForgotPasswordScreenState extends State<RiderForgotPasswordScreen>
           height: 40,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isActive ? _primaryColor : Colors.grey[300],
-            border: isActive ? null : Border.all(color: Colors.grey[400]!),
+            color: isActive ? _primaryColor : const Color(0xFFE6D6C8),
+            border: isActive ? null : Border.all(color: const Color(0xFFD5C3B3)),
           ),
           child: Center(
             child: isCompleted
@@ -404,7 +404,7 @@ class _RiderForgotPasswordScreenState extends State<RiderForgotPasswordScreen>
                 : Text(
               step.toString(),
               style: TextStyle(
-                color: isActive ? Colors.white : Colors.grey[600],
+                color: isActive ? Colors.white : const Color(0xFF7D6C62),
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -415,7 +415,7 @@ class _RiderForgotPasswordScreenState extends State<RiderForgotPasswordScreen>
           label,
           style: TextStyle(
             fontSize: 12,
-            color: isActive ? _primaryColor : Colors.grey[500],
+            color: isActive ? _primaryColor : const Color(0xFF7D6C62),
             fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
@@ -432,7 +432,7 @@ class _RiderForgotPasswordScreenState extends State<RiderForgotPasswordScreen>
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF1F2937),
+            color: Color(0xFF2B1B12),
           ),
         ),
         const SizedBox(height: 8),
@@ -440,7 +440,7 @@ class _RiderForgotPasswordScreenState extends State<RiderForgotPasswordScreen>
           'Enter your email address and we\'ll send you a verification code to reset your password.',
           style: TextStyle(
             fontSize: 14,
-            color: Color(0xFF6B7280),
+            color: Color(0xFF7D6C62),
             height: 1.4,
           ),
         ),
@@ -449,22 +449,22 @@ class _RiderForgotPasswordScreenState extends State<RiderForgotPasswordScreen>
         // Email Field
         Container(
           decoration: BoxDecoration(
-            color: Colors.grey[50],
+            color: const Color(0xFFF5EFE9),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[200]!),
+            border: Border.all(color: const Color(0xFFE5D7C9)),
           ),
           child: TextFormField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
-            style: const TextStyle(color: Color(0xFF1F2937)),
+            style: const TextStyle(color: Color(0xFF2B1B12)),
             decoration: InputDecoration(
               labelText: 'Email Address',
-              labelStyle: const TextStyle(color: Color(0xFF6B7280)),
+              labelStyle: const TextStyle(color: Color(0xFF7D6C62)),
               prefixIcon: Icon(Icons.email_outlined, color: _primaryColor, size: 20),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               hintText: 'you@example.com',
-              hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+              hintStyle: const TextStyle(color: Color(0xFF9A8B82), fontSize: 14),
             ),
           ),
         ),
@@ -486,7 +486,7 @@ class _RiderForgotPasswordScreenState extends State<RiderForgotPasswordScreen>
           children: [
             const Text(
               'Remember your password? ',
-              style: TextStyle(color: Color(0xFF6B7280), fontSize: 14),
+              style: TextStyle(color: Color(0xFF7D6C62), fontSize: 14),
             ),
             TextButton(
               onPressed: () {
@@ -516,7 +516,7 @@ class _RiderForgotPasswordScreenState extends State<RiderForgotPasswordScreen>
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF1F2937),
+            color: Color(0xFF2B1B12),
           ),
         ),
         const SizedBox(height: 8),
@@ -524,7 +524,7 @@ class _RiderForgotPasswordScreenState extends State<RiderForgotPasswordScreen>
           'We\'ve sent a 6-digit verification code to',
           style: TextStyle(
             fontSize: 14,
-            color: Color(0xFF6B7280),
+            color: Color(0xFF7D6C62),
           ),
         ),
         Text(
@@ -540,19 +540,19 @@ class _RiderForgotPasswordScreenState extends State<RiderForgotPasswordScreen>
         // OTP Field
         Container(
           decoration: BoxDecoration(
-            color: Colors.grey[50],
+            color: const Color(0xFFF5EFE9),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[200]!),
+            border: Border.all(color: const Color(0xFFE5D7C9)),
           ),
           child: TextFormField(
             controller: _otpController,
             keyboardType: TextInputType.number,
             maxLength: 6,
-            style: const TextStyle(color: Color(0xFF1F2937), fontSize: 18, letterSpacing: 2),
+            style: const TextStyle(color: Color(0xFF2B1B12), fontSize: 18, letterSpacing: 2),
             textAlign: TextAlign.center,
             decoration: InputDecoration(
               labelText: 'Verification Code',
-              labelStyle: const TextStyle(color: Color(0xFF6B7280)),
+              labelStyle: const TextStyle(color: Color(0xFF7D6C62)),
               prefixIcon: Icon(Icons.security, color: _primaryColor, size: 20),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -568,7 +568,7 @@ class _RiderForgotPasswordScreenState extends State<RiderForgotPasswordScreen>
           children: [
             const Text(
               'Didn\'t receive code? ',
-              style: TextStyle(color: Color(0xFF6B7280), fontSize: 14),
+              style: TextStyle(color: Color(0xFF7D6C62), fontSize: 14),
             ),
             _canResendOtp
                 ? TextButton(
@@ -594,7 +594,7 @@ class _RiderForgotPasswordScreenState extends State<RiderForgotPasswordScreen>
                 : Text(
               'Resend in $_resendTimer sec',
               style: const TextStyle(
-                color: Color(0xFF9CA3AF),
+                color: Color(0xFF9A8B82),
                 fontSize: 14,
               ),
             ),
@@ -626,7 +626,7 @@ class _RiderForgotPasswordScreenState extends State<RiderForgotPasswordScreen>
               child: const Text(
                 '← Back to Email',
                 style: TextStyle(
-                  color: Color(0xFF6B7280),
+                  color: Color(0xFF7D6C62),
                   fontSize: 14,
                 ),
               ),
@@ -646,7 +646,7 @@ class _RiderForgotPasswordScreenState extends State<RiderForgotPasswordScreen>
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF1F2937),
+            color: Color(0xFF2B1B12),
           ),
         ),
         const SizedBox(height: 8),
@@ -654,7 +654,7 @@ class _RiderForgotPasswordScreenState extends State<RiderForgotPasswordScreen>
           'Your new password must be different from previously used passwords.',
           style: TextStyle(
             fontSize: 14,
-            color: Color(0xFF6B7280),
+            color: Color(0xFF7D6C62),
             height: 1.4,
           ),
         ),
@@ -663,22 +663,22 @@ class _RiderForgotPasswordScreenState extends State<RiderForgotPasswordScreen>
         // New Password Field
         Container(
           decoration: BoxDecoration(
-            color: Colors.grey[50],
+            color: const Color(0xFFF5EFE9),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[200]!),
+            border: Border.all(color: const Color(0xFFE5D7C9)),
           ),
           child: TextFormField(
             controller: _newPasswordController,
             obscureText: !_isNewPasswordVisible,
-            style: const TextStyle(color: Color(0xFF1F2937)),
+            style: const TextStyle(color: Color(0xFF2B1B12)),
             decoration: InputDecoration(
               labelText: 'New Password',
-              labelStyle: const TextStyle(color: Color(0xFF6B7280)),
+              labelStyle: const TextStyle(color: Color(0xFF7D6C62)),
               prefixIcon: Icon(Icons.lock_outline, color: _primaryColor, size: 20),
               suffixIcon: IconButton(
                 icon: Icon(
                   _isNewPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                  color: const Color(0xFF6B7280),
+                  color: const Color(0xFF7D6C62),
                 ),
                 onPressed: () {
                   setState(() {
@@ -689,7 +689,7 @@ class _RiderForgotPasswordScreenState extends State<RiderForgotPasswordScreen>
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               hintText: 'Minimum 6 characters',
-              hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+              hintStyle: const TextStyle(color: Color(0xFF9A8B82), fontSize: 14),
             ),
           ),
         ),
@@ -698,22 +698,22 @@ class _RiderForgotPasswordScreenState extends State<RiderForgotPasswordScreen>
         // Confirm Password Field
         Container(
           decoration: BoxDecoration(
-            color: Colors.grey[50],
+            color: const Color(0xFFF5EFE9),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[200]!),
+            border: Border.all(color: const Color(0xFFE5D7C9)),
           ),
           child: TextFormField(
             controller: _confirmPasswordController,
             obscureText: !_isConfirmPasswordVisible,
-            style: const TextStyle(color: Color(0xFF1F2937)),
+            style: const TextStyle(color: Color(0xFF2B1B12)),
             decoration: InputDecoration(
               labelText: 'Confirm Password',
-              labelStyle: const TextStyle(color: Color(0xFF6B7280)),
+              labelStyle: const TextStyle(color: Color(0xFF7D6C62)),
               prefixIcon: Icon(Icons.lock_outline, color: _primaryColor, size: 20),
               suffixIcon: IconButton(
                 icon: Icon(
                   _isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                  color: const Color(0xFF6B7280),
+                  color: const Color(0xFF7D6C62),
                 ),
                 onPressed: () {
                   setState(() {
@@ -732,7 +732,7 @@ class _RiderForgotPasswordScreenState extends State<RiderForgotPasswordScreen>
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFFEFF6FF),
+            color: const Color(0xFFF7E9DF),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Column(
@@ -782,7 +782,7 @@ class _RiderForgotPasswordScreenState extends State<RiderForgotPasswordScreen>
               child: const Text(
                 '← Back to Login',
                 style: TextStyle(
-                  color: Color(0xFF6B7280),
+                  color: Color(0xFF7D6C62),
                   fontSize: 14,
                 ),
               ),
@@ -801,14 +801,14 @@ class _RiderForgotPasswordScreenState extends State<RiderForgotPasswordScreen>
           Icon(
             isMet ? Icons.check_circle : Icons.circle_outlined,
             size: 12,
-            color: isMet ? _primaryColor : const Color(0xFF9CA3AF),
+            color: isMet ? _primaryColor : const Color(0xFF7D6C62),
           ),
           const SizedBox(width: 6),
           Text(
             text,
             style: TextStyle(
               fontSize: 11,
-              color: isMet ? _primaryColor : const Color(0xFF9CA3AF),
+              color: isMet ? const Color(0xFF2B1B12) : const Color(0xFF7D6C62),
             ),
           ),
         ],
@@ -816,47 +816,74 @@ class _RiderForgotPasswordScreenState extends State<RiderForgotPasswordScreen>
     );
   }
 
+  // ========== 3D BUTTON ==========
   Widget _buildButton({
     required String text,
     required Color color,
     required bool isLoading,
     required VoidCallback onTap,
   }) {
+    const Color depthLipColor = Color(0xFFCC3F0C);
+    const Color highlightColor = Color(0xFFFF7A47);
+    const Color lowerFaceColor = Color(0xFFE64A12);
+
     return GestureDetector(
       onTap: isLoading ? null : onTap,
       child: Container(
         width: double.infinity,
-        height: 50,
+        padding: const EdgeInsets.only(bottom: 4.5),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [color, color.withOpacity(0.8)],
-          ),
-          borderRadius: BorderRadius.circular(12),
+          color: depthLipColor,
+          borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+              color: depthLipColor.withOpacity(0.40),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
             ),
           ],
         ),
-        child: Center(
-          child: isLoading
-              ? const SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+        child: Container(
+          height: 48,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [highlightColor, Color(0xFFFF5A1F), lowerFaceColor],
+              stops: [0.0, 0.45, 1.0],
             ),
-          )
-              : Text(
-            text,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.35),
+              width: 1,
             ),
+          ),
+          child: Center(
+            child: isLoading
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : Text(
+                    text,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                      shadows: [
+                        Shadow(
+                          color: Color(0x554A1400),
+                          offset: Offset(0, 1),
+                          blurRadius: 2,
+                        ),
+                      ],
+                    ),
+                  ),
           ),
         ),
       ),
@@ -866,17 +893,9 @@ class _RiderForgotPasswordScreenState extends State<RiderForgotPasswordScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFEDE1D5),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFE0F2FE),
-              Color(0xFFF0FDF4),
-            ],
-          ),
-        ),
+        color: const Color(0xFFEDE1D5),
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -896,7 +915,7 @@ class _RiderForgotPasswordScreenState extends State<RiderForgotPasswordScreen>
                             icon: Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.9),
+                                color: const Color(0xFFE6D6C8),
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
@@ -905,9 +924,9 @@ class _RiderForgotPasswordScreenState extends State<RiderForgotPasswordScreen>
                                   ),
                                 ],
                               ),
-                              child: Icon(
+                              child: const Icon(
                                 Icons.arrow_back,
-                                color: _primaryColor,
+                                color: Color(0xFF2B1B12),
                               ),
                             ),
                           ),
@@ -942,26 +961,51 @@ class _RiderForgotPasswordScreenState extends State<RiderForgotPasswordScreen>
                       _buildStepIndicator(),
                       const SizedBox(height: 32),
 
-                      // Form Container
+                      // ========== 3D FORM CARD ==========
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.85),
+                          color: const Color(0xFFC7B3A1), // 3D depth lip
                           borderRadius: BorderRadius.circular(24),
                           boxShadow: [
+                            const BoxShadow(
+                              color: Color(0x332B1B12),
+                              blurRadius: 8,
+                              offset: Offset(0, 7),
+                            ),
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 32,
-                              offset: const Offset(0, 8),
+                              color: Colors.black.withOpacity(0.10),
+                              blurRadius: 24,
+                              offset: const Offset(0, 14),
                             ),
                           ],
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(24.0),
-                          child: _currentStep == 1
-                              ? _buildEnterEmailStep()
-                              : _currentStep == 2
-                              ? _buildEnterOtpStep()
-                              : _buildResetPasswordStep(),
+                        padding: const EdgeInsets.only(bottom: 7.0),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Color(0xFFFFFFFF),
+                                Color(0xFFFAF7F4),
+                                Color(0xFFF3ECE4),
+                              ],
+                              stops: [0.0, 0.40, 1.0],
+                            ),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: const Color(0xFFE2D3C4),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(24.0),
+                            child: _currentStep == 1
+                                ? _buildEnterEmailStep()
+                                : _currentStep == 2
+                                ? _buildEnterOtpStep()
+                                : _buildResetPasswordStep(),
+                          ),
                         ),
                       ),
                     ],

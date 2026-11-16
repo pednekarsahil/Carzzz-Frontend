@@ -15,6 +15,7 @@ import 'rider_pricebreakup.dart';
 import 'rider_personalinformation.dart';
 import 'rider_helpsupport.dart';
 import 'about_carrzzzriders.dart';
+import '../widgets/app_icon_or_image.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 class RidersDashboard extends StatefulWidget {
@@ -124,13 +125,13 @@ class _RidersDashboardState extends State<RidersDashboard> {
 
   static const int _connectionTimeout = 30;
   static const int _autoRefreshInterval = 30;
-  static const bool _usePhysicalDevice = true;
+  static const bool _usePhysicalDevice = false;
 
   String get _baseUrl {
     if (_usePhysicalDevice) {
       return 'http://10.0.2.2:3000/api';
     } else {
-      return 'https://bikerzzz-backend.onrender.com/api';
+      return 'https://carzzz-frontend.onrender.com/api';
     }
   }
 
@@ -138,7 +139,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
     if (_usePhysicalDevice) {
       return 'http://10.0.2.2:3000';
     } else {
-      return 'https://bikerzzz-backend.onrender.com';
+      return 'https://carzzz-frontend.onrender.com';
     }
   }
 
@@ -198,13 +199,48 @@ class _RidersDashboardState extends State<RidersDashboard> {
   String _getOfferText(dynamic offer) {
     if (offer == null) return '';
 
-    if (offer is Map<String, dynamic>) {
-      final discount = offer['discountPercentage'];
+    if (offer is Map) {
+      final dynamic rawDiscount = offer['discountPercentage'] ??
+          offer['discount'] ??
+          offer['percentage'] ??
+          offer['percent'];
+      final num? discount = rawDiscount is num
+          ? rawDiscount
+          : num.tryParse(rawDiscount?.toString().trim() ?? '');
       if (discount != null && discount > 0) {
-        return '$discount% OFF';
+        return '${discount % 1 == 0 ? discount.toInt() : discount}% OFF';
       }
-    } else if (offer is String && offer.isNotEmpty && offer != 'No Offer') {
-      return offer;
+      final dynamic label = offer['title'] ?? offer['label'] ?? offer['text'];
+      if (label is String &&
+          label.trim().isNotEmpty &&
+          label.trim() != 'No Offer') {
+        return label.trim();
+      }
+      return '';
+    }
+
+    if (offer is num && offer > 0) {
+      return '${offer % 1 == 0 ? offer.toInt() : offer}% OFF';
+    }
+
+    if (offer is String) {
+      final String trimmed = offer.trim();
+      if (trimmed.isEmpty ||
+          trimmed == 'No Offer' ||
+          trimmed.toLowerCase() == 'null') {
+        return '';
+      }
+      if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+        try {
+          final decoded = json.decode(trimmed);
+          if (decoded is Map) return _getOfferText(decoded);
+        } catch (_) {}
+      }
+      final num? numericOffer = num.tryParse(trimmed);
+      if (numericOffer != null && numericOffer > 0) {
+        return '${numericOffer % 1 == 0 ? numericOffer.toInt() : numericOffer}% OFF';
+      }
+      return trimmed;
     }
 
     return '';
@@ -257,9 +293,16 @@ class _RidersDashboardState extends State<RidersDashboard> {
         final data = json.decode(response.body);
         if (data['success'] == true && data['cars'] != null) {
           final carsList = data['cars'] as List;
-          final availablecars = carsList.where((car) =>
-          car['status'] == 'available'
-          ).toList();
+          final String currentUserId = widget.userData['id']?.toString() ?? widget.userData['_id']?.toString() ?? '';
+          final availablecars = carsList.where((car) {
+            final status = car['status'];
+            if (status == 'available') return true;
+            if ((status == 'held' || status == 'hold') &&
+                (car['heldBy'] == currentUserId || _reservedcarIds.contains(car['_id'] ?? car['id']))) {
+              return true;
+            }
+            return false;
+          }).toList();
 
           final processedcars = availablecars.map((car) {
             double ratingValue = 4.0;
@@ -282,8 +325,11 @@ class _RidersDashboardState extends State<RidersDashboard> {
               reviews = _getSampleReviews(ratingValue);
             }
 
-            dynamic offerValue = car['offer'];
-            if (offerValue != null && offerValue is! Map && offerValue is! String) {
+            dynamic offerValue = car['offer'] ?? car['discountPercentage'] ?? car['discount'];
+            if (offerValue != null &&
+                offerValue is! Map &&
+                offerValue is! String &&
+                offerValue is! num) {
               offerValue = offerValue.toString();
             }
 
@@ -376,6 +422,37 @@ class _RidersDashboardState extends State<RidersDashboard> {
       _showSnackBar('Network error. Please try again.');
     }
   }
+
+  Future<void> _releasecar(String carId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+
+      print('🔓 Releasing hold for car: $carId');
+
+      if (token != null) {
+        await Future.wait([
+          http.delete(
+            Uri.parse('$_baseUrl/cars/hold/$carId'),
+            headers: {'Authorization': 'Bearer $token'},
+          ).catchError((_) => http.Response('', 500)),
+          http.delete(
+            Uri.parse('$_baseUrl/cars/release-reservation/$carId'),
+            headers: {'Authorization': 'Bearer $token'},
+          ).catchError((_) => http.Response('', 500)),
+        ]);
+      }
+
+      if (mounted) {
+        setState(() {
+          _reservedcarIds.remove(carId);
+        });
+        await _loadcarsFromBackend();
+      }
+    } catch (e) {
+      print('❌ Error releasing car hold: $e');
+    }
+  }
   Future<void> _requestLocationPermission() async {
     setState(() {
       _isLoadingLocation = true;
@@ -456,9 +533,16 @@ class _RidersDashboardState extends State<RidersDashboard> {
           final carsList = data['cars'] as List;
           print('✅ Received ${carsList.length} cars from backend');
 
-          final availablecars = carsList.where((car) =>
-          car['status'] == 'available'
-          ).toList();
+          final String currentUserId = widget.userData['id']?.toString() ?? widget.userData['_id']?.toString() ?? '';
+          final availablecars = carsList.where((car) {
+            final status = car['status'];
+            if (status == 'available') return true;
+            if ((status == 'held' || status == 'hold') &&
+                (car['heldBy'] == currentUserId || _reservedcarIds.contains(car['_id'] ?? car['id']))) {
+              return true;
+            }
+            return false;
+          }).toList();
 
           print('📊 Available cars count: ${availablecars.length}');
 
@@ -483,8 +567,11 @@ class _RidersDashboardState extends State<RidersDashboard> {
               reviews = _getSampleReviews(ratingValue);
             }
 
-            dynamic offerValue = car['offer'];
-            if (offerValue != null && offerValue is! Map && offerValue is! String) {
+            dynamic offerValue = car['offer'] ?? car['discountPercentage'] ?? car['discount'];
+            if (offerValue != null &&
+                offerValue is! Map &&
+                offerValue is! String &&
+                offerValue is! num) {
               offerValue = offerValue.toString();
             }
 
@@ -758,7 +845,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
   void _initSocket() {
     try {
       _socket = IO.io(_getSocketUrl(), <String, dynamic>{
-        'transports': ['websocket'],
+        'transports': ['polling', 'websocket'],
         'autoConnect': true,
       });
 
@@ -911,7 +998,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: const Color(0xFF3B82F6),
+        backgroundColor: const Color(0xFFFF5A1F),
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 2),
       ),
@@ -947,7 +1034,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
             ),
           ],
         ),
-        backgroundColor: const Color(0xFF3B82F6),
+        backgroundColor: const Color(0xFFFF5A1F),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
@@ -1099,9 +1186,9 @@ class _RidersDashboardState extends State<RidersDashboard> {
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(context).viewInsets.bottom,
             ),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
-              borderRadius: const BorderRadius.only(
+            decoration: const BoxDecoration(
+              color: Color(0xFFFAF7F4),
+              borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(24),
                 topRight: Radius.circular(24),
               ),
@@ -1114,7 +1201,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey[600],
+                    color: const Color(0xFFE5D7C9),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -1124,15 +1211,15 @@ class _RidersDashboardState extends State<RidersDashboard> {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: Color(0xFF2B1B12),
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   car['name'],
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
-                    color: Colors.grey[400],
+                    color: Color(0xFF7D6C62),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -1150,7 +1237,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                         child: Icon(
                           index < selectedRating ? Icons.star : Icons.star_border,
                           size: 40,
-                          color: const Color(0xFFF59E0B),
+                          color: const Color(0xFFFF5A1F),
                         ),
                       ),
                     );
@@ -1159,9 +1246,9 @@ class _RidersDashboardState extends State<RidersDashboard> {
                 const SizedBox(height: 8),
                 Text(
                   selectedRating > 0 ? '${selectedRating.toStringAsFixed(1)} stars' : 'Tap to rate (optional)',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
-                    color: Colors.grey[400],
+                    color: Color(0xFF7D6C62),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -1170,30 +1257,30 @@ class _RidersDashboardState extends State<RidersDashboard> {
                   child: TextField(
                     controller: reviewController,
                     maxLines: 3,
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: Color(0xFF2B1B12)),
                     decoration: InputDecoration(
                       hintText: 'Write your review here... *',
-                      hintStyle: TextStyle(
-                        color: Colors.grey[500],
+                      hintStyle: const TextStyle(
+                        color: Color(0xFF9A8B82),
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: Colors.grey[700]!,
+                        borderSide: const BorderSide(
+                          color: Color(0xFFE5D7C9),
                         ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: Colors.grey[700]!,
+                        borderSide: const BorderSide(
+                          color: Color(0xFFE5D7C9),
                         ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF3B82F6)),
+                        borderSide: const BorderSide(color: Color(0xFFFF5A1F)),
                       ),
                       filled: true,
-                      fillColor: Colors.grey[800],
+                      fillColor: const Color(0xFFF5EFE9),
                     ),
                   ),
                 ),
@@ -1203,66 +1290,81 @@ class _RidersDashboardState extends State<RidersDashboard> {
                   child: Row(
                     children: [
                       Expanded(
-                        child: OutlinedButton(
-                          onPressed: isSubmitting ? null : () {
-                            Navigator.pop(context);
-                          },
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: Colors.grey[600]!),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE6D6C8),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Text(
-                            'Cancel',
-                            style: TextStyle(
-                              color: Colors.grey[400],
+                          child: OutlinedButton(
+                            onPressed: isSubmitting ? null : () {
+                              Navigator.pop(context);
+                            },
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              side: BorderSide.none,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(
+                                color: Color(0xFF2B1B12),
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: ElevatedButton(
-                          onPressed: isSubmitting ? null : () {
-                            if (reviewController.text.trim().isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Please write a review'),
-                                  backgroundColor: Colors.orange,
-                                ),
-                              );
-                              return;
-                            }
-
-                            final userName = widget.userData['fullname']?.split(' ')[0] ?? 'User';
-                            Navigator.pop(context);
-                            _addReview(
-                                car,
-                                userName,
-                                selectedRating,
-                                reviewController.text.trim()
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF3B82F6),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF5A1F),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          child: isSubmitting
-                              ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          child: ElevatedButton(
+                            onPressed: isSubmitting ? null : () {
+                              if (reviewController.text.trim().isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Please write a review'),
+                                    backgroundColor: Color(0xFFFF5A1F),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              final userName = widget.userData['fullname']?.split(' ')[0] ?? 'User';
+                              Navigator.pop(context);
+                              _addReview(
+                                  car,
+                                  userName,
+                                  selectedRating,
+                                  reviewController.text.trim()
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              foregroundColor: Colors.white,
+                              shadowColor: Colors.transparent,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
-                          )
-                              : const Text('Submit Review'),
+                            child: isSubmitting
+                                ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                                : const Text('Submit Review'),
+                          ),
                         ),
                       ),
                     ],
@@ -1290,13 +1392,12 @@ class _RidersDashboardState extends State<RidersDashboard> {
         builder: (context, setStatePopup) {
           int currentImageIndex = 0;
           final reviewsList = car['reviews'] as List<CarReview>;
-          _reservecar(car['id']);
 
           return Container(
             height: MediaQuery.of(context).size.height * 0.85,
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
-              borderRadius: const BorderRadius.only(
+            decoration: const BoxDecoration(
+              color: Color(0xFFFAF7F4),
+              borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(24),
                 topRight: Radius.circular(24),
               ),
@@ -1308,7 +1409,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey[600],
+                    color: const Color(0xFFE5D7C9),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -1339,7 +1440,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                                       ),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withOpacity(0.3),
+                                          color: Colors.black.withOpacity(0.2),
                                           blurRadius: 10,
                                           offset: const Offset(0, 4),
                                         ),
@@ -1363,8 +1464,8 @@ class _RidersDashboardState extends State<RidersDashboard> {
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
                                         color: currentImageIndex == index
-                                            ? const Color(0xFF3B82F6)
-                                            : Colors.white.withOpacity(0.5),
+                                            ? const Color(0xFFFF5A1F)
+                                            : Colors.white.withOpacity(0.6),
                                       ),
                                     ),
                                   ),
@@ -1385,7 +1486,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                                   style: const TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                                    color: Color(0xFF2B1B12),
                                   ),
                                 ),
                               ),
@@ -1394,7 +1495,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                                 style: const TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF3B82F6),
+                                  color: Color(0xFFFF5A1F),
                                 ),
                               ),
                             ],
@@ -1407,21 +1508,21 @@ class _RidersDashboardState extends State<RidersDashboard> {
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.star, size: 18, color: Color(0xFFF59E0B)),
+                                  const Icon(Icons.star, size: 18, color: Color(0xFFFF5A1F)),
                                   const SizedBox(width: 4),
                                   Text(
                                     car['rating'].toStringAsFixed(1),
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
-                                      color: Colors.white,
+                                      color: Color(0xFF2B1B12),
                                     ),
                                   ),
                                   Text(
                                     ' (${reviewsList.length} reviews)',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey[400],
+                                      color: Color(0xFF7D6C62),
                                     ),
                                   ),
                                 ],
@@ -1429,13 +1530,13 @@ class _RidersDashboardState extends State<RidersDashboard> {
                               const SizedBox(width: 16),
                               Row(
                                 children: [
-                                  Icon(Icons.location_on, size: 18, color: Colors.grey[400]),
+                                  const Icon(Icons.location_on, size: 18, color: Color(0xFF7D6C62)),
                                   const SizedBox(width: 4),
                                   Text(
                                     '${(car['distance'] as double).toStringAsFixed(1)} km',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 14,
-                                      color: Colors.grey[400],
+                                      color: Color(0xFF7D6C62),
                                     ),
                                   ),
                                 ],
@@ -1454,24 +1555,24 @@ class _RidersDashboardState extends State<RidersDashboard> {
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                                  color: Color(0xFF2B1B12),
                                 ),
                               ),
                               const SizedBox(height: 8),
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: Colors.grey[800],
+                                  color: const Color(0xFFF5EFE9),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: Colors.grey[700]!,
+                                    color: const Color(0xFFE5D7C9),
                                   ),
                                 ),
                                 child: Text(
                                   car['description'],
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontSize: 14,
-                                    color: Colors.grey[300],
+                                    color: Color(0xFF2B1B12),
                                     height: 1.5,
                                   ),
                                 ),
@@ -1490,7 +1591,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                                  color: Color(0xFF2B1B12),
                                 ),
                               ),
                               GestureDetector(
@@ -1500,9 +1601,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                                    ),
+                                    color: const Color(0xFFFF5A1F),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: const Row(
@@ -1531,8 +1630,11 @@ class _RidersDashboardState extends State<RidersDashboard> {
                               ? Container(
                             padding: const EdgeInsets.all(24),
                             decoration: BoxDecoration(
-                              color: Colors.grey[800],
+                              color: const Color(0xFFF5EFE9),
                               borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: const Color(0xFFE5D7C9),
+                              ),
                             ),
                             child: Center(
                               child: Column(
@@ -1540,22 +1642,23 @@ class _RidersDashboardState extends State<RidersDashboard> {
                                   Icon(
                                     Icons.rate_review,
                                     size: 48,
-                                    color: Colors.grey[600],
+                                    color: const Color(0xFF7D6C62).withOpacity(0.6),
                                   ),
                                   const SizedBox(height: 8),
-                                  Text(
+                                  const Text(
                                     'No reviews yet',
                                     style: TextStyle(
                                       fontSize: 14,
-                                      color: Colors.grey[500],
+                                      color: Color(0xFF2B1B12),
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
-                                  Text(
+                                  const Text(
                                     'Be the first to review this car!',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey[500],
+                                      color: Color(0xFF7D6C62),
                                     ),
                                   ),
                                 ],
@@ -1571,10 +1674,10 @@ class _RidersDashboardState extends State<RidersDashboard> {
                                   margin: const EdgeInsets.only(bottom: 12),
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: Colors.grey[800],
+                                    color: const Color(0xFFF5EFE9),
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: Colors.grey[700]!,
+                                      color: const Color(0xFFE5D7C9),
                                     ),
                                   ),
                                   child: Column(
@@ -1585,15 +1688,15 @@ class _RidersDashboardState extends State<RidersDashboard> {
                                           Container(
                                             width: 32,
                                             height: 32,
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFF3B82F6).withOpacity(0.2),
+                                            decoration: const BoxDecoration(
+                                              color: Color(0xFFF7E9DF),
                                               shape: BoxShape.circle,
                                             ),
                                             child: const Center(
                                               child: Icon(
                                                 Icons.person,
                                                 size: 16,
-                                                color: Color(0xFF3B82F6),
+                                                color: Color(0xFFFF5A1F),
                                               ),
                                             ),
                                           ),
@@ -1603,7 +1706,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                                               review.userName,
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.w600,
-                                                color: Colors.white,
+                                                color: Color(0xFF2B1B12),
                                               ),
                                             ),
                                           ),
@@ -1615,7 +1718,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                                                     ? Icons.star
                                                     : Icons.star_border,
                                                 size: 14,
-                                                color: const Color(0xFFF59E0B),
+                                                color: const Color(0xFFFF5A1F),
                                               ),
                                             ),
                                           ),
@@ -1624,17 +1727,17 @@ class _RidersDashboardState extends State<RidersDashboard> {
                                       const SizedBox(height: 8),
                                       Text(
                                         review.comment,
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           fontSize: 13,
-                                          color: Colors.grey[400],
+                                          color: Color(0xFF7D6C62),
                                         ),
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
                                         _formatDate(review.createdAt),
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           fontSize: 10,
-                                          color: Colors.grey[600],
+                                          color: Color(0xFF9A8B82),
                                         ),
                                       ),
                                     ],
@@ -1650,13 +1753,14 @@ class _RidersDashboardState extends State<RidersDashboard> {
                           child: GestureDetector(
                             onTap: () async {
                               Navigator.pop(context);
+                              await _reservecar(car['id']);
                               final result = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => RiderPriceBreakup(
                                     carData: car,
                                     userData: widget.userData,
-                                    isDarkMode: true,
+                                    isDarkMode: false,
                                   ),
                                 ),
                               );
@@ -1668,31 +1772,56 @@ class _RidersDashboardState extends State<RidersDashboard> {
                                 await Future.delayed(const Duration(milliseconds: 500));
                                 await _loadMyRides();
                                 _showSnackBar('Your car is booked! Check your ongoing ride in My Rides.');
+                              } else {
+                                // User backed out without paying - release hold immediately
+                                await _releasecar(car['id']);
                               }
                             },
                             child: Container(
                               width: double.infinity,
-                              height: 50,
+                              padding: const EdgeInsets.only(bottom: 4.5),
                               decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                                ),
-                                borderRadius: BorderRadius.circular(12),
+                                color: const Color(0xFFCC3F0C),
+                                borderRadius: BorderRadius.circular(14),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(0xFF3B82F6).withOpacity(0.3),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 4),
+                                    color: const Color(0xFFCC3F0C).withOpacity(0.40),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 5),
                                   ),
                                 ],
                               ),
-                              child: const Center(
-                                child: Text(
-                                  'Rent Now',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
+                              child: Container(
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [Color(0xFFFF7A47), Color(0xFFFF5A1F), Color(0xFFE64A12)],
+                                    stops: [0.0, 0.45, 1.0],
+                                  ),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: Colors.white.withOpacity(0.35),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: const Center(
+                                  child: Text(
+                                    'Rent Now',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.5,
+                                      shadows: [
+                                        Shadow(
+                                          color: Color(0x554A1400),
+                                          offset: Offset(0, 1),
+                                          blurRadius: 2,
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
@@ -1803,7 +1932,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
       builder: (context) => Container(
         padding: const EdgeInsets.all(20),
         decoration: const BoxDecoration(
-          color: Color(0xFF1E293B),
+          color: Color(0xFFFAF7F4),
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(24),
             topRight: Radius.circular(24),
@@ -1818,7 +1947,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey[600],
+                  color: const Color(0xFFE5D7C9),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -1830,12 +1959,10 @@ class _RidersDashboardState extends State<RidersDashboard> {
                   width: 50,
                   height: 50,
                   decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                    ),
+                    color: Color(0xFFF7E9DF),
                     borderRadius: BorderRadius.all(Radius.circular(12)),
                   ),
-                  child: const Icon(Icons.directions_car, color: Colors.white, size: 28),
+                  child: const Icon(Icons.directions_car, color: Color(0xFFFF5A1F), size: 28),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -1847,14 +1974,14 @@ class _RidersDashboardState extends State<RidersDashboard> {
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: Color(0xFF2B1B12),
                         ),
                       ),
                       Text(
                         'Booking ID: ${ride.id}',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
-                          color: Colors.grey[400],
+                          color: Color(0xFF7D6C62),
                         ),
                       ),
                     ],
@@ -1863,34 +1990,34 @@ class _RidersDashboardState extends State<RidersDashboard> {
               ],
             ),
             const SizedBox(height: 20),
-            const Divider(),
+            const Divider(color: Color(0xFFE5D7C9)),
             const SizedBox(height: 12),
             _buildRideDetailRow(
               icon: Icons.calendar_today,
               label: 'Rental Start',
               value: ride.startDateTime != null ? _formatDateTime(ride.startDateTime!) : 'Not specified',
-              isDark: true,
+              isDark: false,
             ),
             const SizedBox(height: 12),
             _buildRideDetailRow(
               icon: Icons.calendar_today,
               label: 'Rental End',
               value: ride.endDateTime != null ? _formatDateTime(ride.endDateTime!) : 'Not specified',
-              isDark: true,
+              isDark: false,
             ),
             const SizedBox(height: 12),
             _buildRideDetailRow(
               icon: Icons.access_time,
               label: 'Rental Type',
               value: _getRentalTypeText(ride.rentalType),
-              isDark: true,
+              isDark: false,
             ),
             const SizedBox(height: 12),
             _buildRideDetailRow(
               icon: Icons.currency_rupee,
               label: 'Amount Paid',
               value: '₹${ride.amount.toStringAsFixed(2)}',
-              isDark: true,
+              isDark: false,
               isBold: true,
             ),
             if (ride.handoverDate != null)
@@ -1900,39 +2027,61 @@ class _RidersDashboardState extends State<RidersDashboard> {
                   icon: Icons.handshake,
                   label: 'Handed Over',
                   value: _formatDateTime(ride.handoverDate!),
-                  isDark: true,
-                  valueColor: const Color(0xFF10B981),
+                  isDark: false,
+                  valueColor: const Color(0xFF2E7D32),
                 ),
               ),
             const SizedBox(height: 20),
-            SizedBox(
+            Container(
               width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  foregroundColor: Colors.white,
-                  shadowColor: Colors.transparent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              padding: const EdgeInsets.only(bottom: 4.5),
+              decoration: BoxDecoration(
+                color: const Color(0xFFCC3F0C),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFCC3F0C).withOpacity(0.35),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
                   ),
-                ),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => Navigator.pop(context),
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0xFFFF7A47), Color(0xFFFF5A1F), Color(0xFFE64A12)],
+                        stops: [0.0, 0.45, 1.0],
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.35),
+                        width: 1,
+                      ),
                     ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Text(
-                    'Close',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                    child: const Text(
+                      'Close',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        shadows: [
+                          Shadow(
+                            color: Color(0x66000000),
+                            offset: Offset(0, 1),
+                            blurRadius: 2,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -1954,15 +2103,15 @@ class _RidersDashboardState extends State<RidersDashboard> {
   }) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: const Color(0xFF3B82F6)),
+        Icon(icon, size: 18, color: const Color(0xFFFF5A1F)),
         const SizedBox(width: 12),
         SizedBox(
           width: 100,
           child: Text(
             label,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 13,
-              color: isDark ? Colors.grey[400] : Colors.grey[600],
+              color: Color(0xFF7D6C62),
             ),
           ),
         ),
@@ -1972,7 +2121,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
             style: TextStyle(
               fontSize: 14,
               fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-              color: valueColor ?? (isDark ? Colors.white : const Color(0xFF1F2937)),
+              color: valueColor ?? const Color(0xFF2B1B12),
             ),
           ),
         ),
@@ -1987,34 +2136,27 @@ class _RidersDashboardState extends State<RidersDashboard> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: const Color(0xFFFAF7F4),
         title: const Text(
           'Logout',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: Color(0xFF2B1B12), fontWeight: FontWeight.bold),
         ),
-        content: Text(
+        content: const Text(
           'Are you sure you want to logout?',
-          style: TextStyle(color: Colors.grey[400]),
+          style: TextStyle(color: Color(0xFF7D6C62)),
         ),
         actions: [
-          // Cancel button with gradient text
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: ShaderMask(
-              shaderCallback: (bounds) => const LinearGradient(
-                colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-              ).createShader(bounds),
-              child: const Text(
-                'Cancel',
-                style: TextStyle(
-                  color: Colors.white, // This will be overridden by ShaderMask
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(
+                color: Color(0xFF7D6C62),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
-          // Logout button with gradient background
           ElevatedButton(
             onPressed: () async {
               final prefs = await SharedPreferences.getInstance();
@@ -2028,23 +2170,52 @@ class _RidersDashboardState extends State<RidersDashboard> {
               backgroundColor: Colors.transparent,
               foregroundColor: Colors.white,
               shadowColor: Colors.transparent,
+              padding: EdgeInsets.zero,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(10),
               ),
             ),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.only(bottom: 3.5),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                ),
-                borderRadius: BorderRadius.circular(8),
+                color: const Color(0xFFCC3F0C),
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFCC3F0C).withOpacity(0.30),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
-              child: const Text(
-                'Logout',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0xFFFF7A47), Color(0xFFFF5A1F), Color(0xFFE64A12)],
+                    stops: [0.0, 0.45, 1.0],
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.35),
+                    width: 1,
+                  ),
+                ),
+                child: const Text(
+                  'Logout',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    shadows: [
+                      Shadow(
+                        color: Color(0x66000000),
+                        offset: Offset(0, 1),
+                        blurRadius: 2,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -2054,121 +2225,25 @@ class _RidersDashboardState extends State<RidersDashboard> {
     );
   }
 
-  // ========== REDESIGNED UI BUILD METHODS - DARK MODE ONLY ==========
+  // ========== REDESIGNED UI BUILD METHODS - LIGHT MODE ==========
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark(),
+      theme: ThemeData.light().copyWith(
+        scaffoldBackgroundColor: const Color(0xFFEDE1D5),
+      ),
       home: Scaffold(
+        backgroundColor: const Color(0xFFEDE1D5),
         body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF0F172A),
-                Color(0xFF1E293B),
-              ],
-            ),
-          ),
+          width: double.infinity,
+          height: double.infinity,
+          color: const Color(0xFFEDE1D5),
           child: SafeArea(
             child: Stack(
               children: [
                 Column(
                   children: [
-                    // ========== REDESIGNED HEADER ==========
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B).withOpacity(0.95),
-                        borderRadius: const BorderRadius.only(
-                          bottomLeft: Radius.circular(24),
-                          bottomRight: Radius.circular(24),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 20,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 50,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                              ),
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF3B82F6).withOpacity(0.3),
-                                  blurRadius: 15,
-                                  spreadRadius: 5,
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.person,
-                              color: Colors.white,
-                              size: 28,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Welcome back,',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[400],
-                                  ),
-                                ),
-                                Text(
-                                  widget.userData['fullname'] ?? 'Rider',
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                Text(
-                                  widget.userData['email'] ?? 'rider@example.com',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[500],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                              ),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: IconButton(
-                              onPressed: () {
-                                _showLogoutDialog();
-                              },
-                              icon: const Icon(
-                                Icons.logout,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                     Expanded(
                       child: IndexedStack(
                         index: _selectedIndex,
@@ -2179,64 +2254,120 @@ class _RidersDashboardState extends State<RidersDashboard> {
                         ],
                       ),
                     ),
-                    // ========== REDESIGNED BOTTOM NAVIGATION ==========
+                    // ========== 3D RECTANGULAR CIRCULAR BOTTOM NAVIGATION WITH SLIDING 3D ORANGE BUTTON ==========
                     Container(
+                      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B).withOpacity(0.95),
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(24),
-                          topRight: Radius.circular(24),
-                          bottomLeft: Radius.circular(24),
-                          bottomRight: Radius.circular(24),
-                        ),
+                        color: const Color(0xFFD6C6B8),
+                        borderRadius: BorderRadius.circular(26),
                         boxShadow: [
+                          const BoxShadow(
+                            color: Color(0x282B1B12),
+                            blurRadius: 8,
+                            offset: Offset(0, 4),
+                          ),
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 20,
-                            offset: const Offset(0, -4),
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 18,
+                            offset: const Offset(0, 8),
                           ),
                         ],
                       ),
-                      child: BottomNavigationBar(
-                        currentIndex: _selectedIndex,
-                        onTap: (index) {
-                          setState(() {
-                            _selectedIndex = index;
-                            _showFilterMenu = false;
-                            if (index == 1) {
-                              _loadMyRides();
-                            }
-                          });
-                        },
-                        type: BottomNavigationBarType.fixed,
-                        selectedItemColor: const Color(0xFF3B82F6),
-                        unselectedItemColor: Colors.grey[500],
-                        backgroundColor: Colors.transparent,
-                        selectedLabelStyle: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
+                      padding: const EdgeInsets.only(bottom: 4.5),
+                      child: Container(
+                        height: 64,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Color(0xFFFFFFFF), Color(0xFFFAF7F4), Color(0xFFF3ECE4)],
+                            stops: [0.0, 0.45, 1.0],
+                          ),
+                          borderRadius: BorderRadius.circular(26),
+                          border: Border.all(
+                            color: const Color(0xFFE2D3C4),
+                            width: 1.2,
+                          ),
                         ),
-                        unselectedLabelStyle: const TextStyle(
-                          fontSize: 12,
+                        padding: const EdgeInsets.all(5),
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            final double tabWidth = constraints.maxWidth / 3;
+                            return Stack(
+                              children: [
+                                // Sliding 3D Orange Button with Glow Shadow
+                                AnimatedPositioned(
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeOutCubic,
+                                  left: _selectedIndex * tabWidth,
+                                  top: 0,
+                                  bottom: 0,
+                                  width: tabWidth,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                    child: Container(
+                                      padding: const EdgeInsets.only(bottom: 3.5),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFCC3F0C),
+                                        borderRadius: BorderRadius.circular(20),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(0xFFFF5A1F).withOpacity(0.45),
+                                            blurRadius: 12,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                          const BoxShadow(
+                                            color: Color(0x252B1B12),
+                                            blurRadius: 4,
+                                            offset: Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          gradient: const LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            colors: [Color(0xFFFF7A47), Color(0xFFFF5A1F), Color(0xFFE64A12)],
+                                            stops: [0.0, 0.45, 1.0],
+                                          ),
+                                          borderRadius: BorderRadius.circular(20),
+                                          border: Border.all(
+                                            color: Colors.white.withOpacity(0.35),
+                                            width: 1,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // Interactive Tab Items
+                                Row(
+                                  children: [
+                                    _buildRiderNavTabItem(
+                                      index: 0,
+                                      label: 'Home',
+                                      icon: Icons.home_outlined,
+                                      activeIcon: Icons.home,
+                                    ),
+                                    _buildRiderNavTabItem(
+                                      index: 1,
+                                      label: 'My Rides',
+                                      icon: Icons.directions_car_outlined,
+                                      activeIcon: Icons.directions_car,
+                                    ),
+                                    _buildRiderNavTabItem(
+                                      index: 2,
+                                      label: 'Profile',
+                                      icon: Icons.person_outline,
+                                      activeIcon: Icons.person,
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            );
+                          },
                         ),
-                        elevation: 0,
-                        items: const [
-                          BottomNavigationBarItem(
-                            icon: Icon(Icons.home_outlined),
-                            activeIcon: Icon(Icons.home),
-                            label: 'Home',
-                          ),
-                          BottomNavigationBarItem(
-                            icon: Icon(Icons.directions_car_outlined),
-                            activeIcon: Icon(Icons.directions_car),
-                            label: 'My Rides',
-                          ),
-                          BottomNavigationBarItem(
-                            icon: Icon(Icons.person_outline),
-                            activeIcon: Icon(Icons.person),
-                            label: 'Profile',
-                          ),
-                        ],
                       ),
                     ),
                   ],
@@ -2265,15 +2396,15 @@ class _RidersDashboardState extends State<RidersDashboard> {
                           maxHeight: 400,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1E293B),
+                          color: const Color(0xFFFAF7F4),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: Colors.grey[700]!,
+                            color: const Color(0xFFE5D7C9),
                             width: 1,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.3),
+                              color: Colors.black.withOpacity(0.08),
                               blurRadius: 16,
                               offset: const Offset(0, 4),
                             ),
@@ -2307,10 +2438,10 @@ class _RidersDashboardState extends State<RidersDashboard> {
                                       horizontal: 16,
                                       vertical: 12,
                                     ),
-                                    decoration: BoxDecoration(
+                                    decoration: const BoxDecoration(
                                       border: Border(
                                         bottom: BorderSide(
-                                          color: Colors.grey[700]!,
+                                          color: Color(0xFFE5D7C9),
                                         ),
                                       ),
                                     ),
@@ -2320,7 +2451,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                                           const Icon(
                                             Icons.check_circle,
                                             size: 16,
-                                            color: Color(0xFF3B82F6),
+                                            color: Color(0xFFFF5A1F),
                                           )
                                         else
                                           const SizedBox(width: 16),
@@ -2331,8 +2462,8 @@ class _RidersDashboardState extends State<RidersDashboard> {
                                             style: TextStyle(
                                               fontSize: 14,
                                               color: _selectedFilter == filter
-                                                  ? const Color(0xFF3B82F6)
-                                                  : Colors.grey[300],
+                                                  ? const Color(0xFFFF5A1F)
+                                                  : const Color(0xFF2B1B12),
                                               fontWeight: _selectedFilter == filter
                                                   ? FontWeight.w600
                                                   : FontWeight.normal,
@@ -2358,6 +2489,65 @@ class _RidersDashboardState extends State<RidersDashboard> {
     );
   }
 
+  Widget _buildRiderNavTabItem({
+    required int index,
+    required String label,
+    required IconData icon,
+    required IconData activeIcon,
+  }) {
+    final bool isSelected = _selectedIndex == index;
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          setState(() {
+            _selectedIndex = index;
+            _showFilterMenu = false;
+            if (index == 1) {
+              _loadMyRides();
+            }
+          });
+        },
+        child: SizedBox(
+          height: double.infinity,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: Icon(
+                  isSelected ? activeIcon : icon,
+                  key: ValueKey<bool>(isSelected),
+                  color: isSelected ? Colors.white : const Color(0xFF7D6C62),
+                  size: 22,
+                ),
+              ),
+              const SizedBox(height: 2),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                  color: isSelected ? Colors.white : const Color(0xFF7D6C62),
+                  shadows: isSelected
+                      ? const [
+                          Shadow(
+                            color: Color(0x66000000),
+                            offset: Offset(0, 1),
+                            blurRadius: 2,
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Text(label),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   double _getFilterMenuPosition() {
     final RenderBox? buttonRenderBox = _filterButtonKey.currentContext?.findRenderObject() as RenderBox?;
     if (buttonRenderBox != null) {
@@ -2375,7 +2565,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
         await _requestLocationPermission();
         await _loadcarsFromBackend();
       },
-      color: const Color(0xFF3B82F6),
+      color: const Color(0xFFFF5A1F),
       child: GestureDetector(
         onTap: () {
           if (_showFilterMenu) {
@@ -2390,61 +2580,151 @@ class _RidersDashboardState extends State<RidersDashboard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Search Bar - Dark mode only
-              Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Colors.grey[700]!,
-                    width: 1,
+              // Search Bar and Filter Button
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD6C6B8),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          const BoxShadow(
+                            color: Color(0x202B1B12),
+                            blurRadius: 6,
+                            offset: Offset(0, 3),
+                          ),
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.only(bottom: 3.5),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Color(0xFFFFFFFF), Color(0xFFFAF7F4), Color(0xFFF3ECE4)],
+                            stops: [0.0, 0.45, 1.0],
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: const Color(0xFFE2D3C4),
+                            width: 1.2,
+                          ),
+                        ),
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (value) {
+                            setState(() {
+                              if (value.isEmpty) {
+                                _filtercars(_selectedFilter);
+                              } else {
+                                _filteredcars = _filteredcars
+                                    .where((car) => car['name']
+                                    .toLowerCase()
+                                    .contains(value.toLowerCase()))
+                                    .toList();
+                              }
+                            });
+                          },
+                          style: const TextStyle(color: Color(0xFF2B1B12)),
+                          decoration: const InputDecoration(
+                            hintText: 'Search by brand, model or location',
+                            hintStyle: TextStyle(
+                              color: Color(0xFF7D6C62),
+                              fontSize: 14,
+                            ),
+                            prefixIcon: Icon(
+                              Icons.search,
+                              color: Color(0xFF7D6C62),
+                            ),
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (value) {
-                    setState(() {
-                      if (value.isEmpty) {
-                        _filtercars(_selectedFilter);
-                      } else {
-                        _filteredcars = _filteredcars
-                            .where((car) => car['name']
-                            .toLowerCase()
-                            .contains(value.toLowerCase()))
-                            .toList();
-                      }
-                    });
-                  },
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    hintText: 'Search by brand, model or location',
-                    hintStyle: TextStyle(
-                      color: Colors.grey[500],
-                      fontSize: 14,
-                    ),
-                    prefixIcon: Icon(
-                      Icons.search,
-                      color: Colors.grey[500],
-                    ),
-                    border: OutlineInputBorder(
+                  const SizedBox(width: 10),
+                  Container(
+                    key: _filterButtonKey,
+                    padding: const EdgeInsets.only(bottom: 3.5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFCC3F0C),
                       borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide.none,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFCC3F0C).withOpacity(0.35),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    filled: true,
-                    fillColor: const Color(0xFF1E293B),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          setState(() {
+                            _showFilterMenu = !_showFilterMenu;
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 13,
+                          ),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Color(0xFFFF7A47), Color(0xFFFF5A1F), Color(0xFFE64A12)],
+                              stops: [0.0, 0.45, 1.0],
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.35),
+                              width: 1,
+                            ),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.filter_list,
+                                size: 18,
+                                color: Colors.white,
+                              ),
+                              SizedBox(width: 6),
+                              Text(
+                                'Filter',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                  shadows: [
+                                    Shadow(
+                                      color: Color(0x66000000),
+                                      offset: Offset(0, 1),
+                                      blurRadius: 2,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
               const SizedBox(height: 24),
 
@@ -2454,58 +2734,40 @@ class _RidersDashboardState extends State<RidersDashboard> {
                   padding: const EdgeInsets.all(12),
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    // FIXED: Use Color(0xFFF59E0B) with opacity instead of Colors.orange[900]
-                    color: const Color(0xFFF59E0B).withOpacity(0.15),
+                    color: const Color(0xFFF7E9DF),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: Colors.orange[700]!,
+                      color: const Color(0xFFFF5A1F),
                     ),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.location_off, color: Colors.orange[400]),
+                      const Icon(Icons.location_off, color: Color(0xFFFF5A1F)),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           _locationError,
-                          style: TextStyle(color: Colors.orange[300], fontSize: 12),
+                          style: const TextStyle(color: Color(0xFF2B1B12), fontSize: 12),
                         ),
                       ),
                       TextButton(
                         onPressed: _requestLocationPermission,
-                        child: Text('Retry', style: TextStyle(color: Colors.orange[400], fontSize: 12)),
+                        child: const Text('Retry', style: TextStyle(color: Color(0xFFFF5A1F), fontSize: 12, fontWeight: FontWeight.w600)),
                       ),
                     ],
                   ),
                 ),
 
               // Nearby Cars Section
-              Row(
+              const Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Nearby Cars',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '${_nearbycars.length} cars',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      color: Color(0xFF2B1B12),
                     ),
                   ),
                 ],
@@ -2516,7 +2778,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                 height: 200,
                 child: Center(
                   child: CircularProgressIndicator(
-                    color: Color(0xFF3B82F6),
+                    color: Color(0xFFFF5A1F),
                   ),
                 ),
               )
@@ -2527,18 +2789,18 @@ class _RidersDashboardState extends State<RidersDashboard> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.location_off,
                         size: 48,
-                        color: Colors.grey[600],
+                        color: Color(0xFF7D6C62),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         _currentPosition == null
                             ? 'Enable location to see nearby cars'
                             : 'No cars found within 10km radius',
-                        style: TextStyle(
-                          color: Colors.grey[500],
+                        style: const TextStyle(
+                          color: Color(0xFF7D6C62),
                         ),
                       ),
                     ],
@@ -2557,6 +2819,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                       distance: '${(_nearbycars[index]['distance'] as double).toStringAsFixed(1)} km',
                       rating: _nearbycars[index]['rating'],
                       carData: _nearbycars[index],
+                      isAlternate: index.isOdd,
                     );
                   },
                 ),
@@ -2572,48 +2835,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  Container(
-                    key: _filterButtonKey,
-                    child: TextButton(
-                      onPressed: () {
-                        setState(() {
-                          _showFilterMenu = !_showFilterMenu;
-                        });
-                      },
-                      style: TextButton.styleFrom(
-                        backgroundColor: const Color(0xFF1E293B),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(
-                            color: Colors.grey[700]!,
-                          ),
-                        ),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(
-                            Icons.filter_list,
-                            size: 18,
-                            color: Color(0xFF3B82F6),
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            'Filter',
-                            style: TextStyle(
-                              color: Color(0xFF3B82F6),
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
+                      color: Color(0xFF2B1B12),
                     ),
                   ),
                 ],
@@ -2624,35 +2846,36 @@ class _RidersDashboardState extends State<RidersDashboard> {
                 child: Padding(
                   padding: EdgeInsets.all(32),
                   child: CircularProgressIndicator(
-                    color: Color(0xFF3B82F6),
+                    color: Color(0xFFFF5A1F),
                   ),
                 ),
               )
                   : _filteredcars.isEmpty
-                  ? Center(
+                  ? const Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(32),
+                  padding: EdgeInsets.all(32),
                   child: Column(
                     children: [
                       Icon(
                         Icons.directions_car,
                         size: 64,
-                        color: Colors.grey[600],
+                        color: Color(0xFF7D6C62),
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16),
                       Text(
                         'No cars available',
                         style: TextStyle(
                           fontSize: 16,
-                          color: Colors.grey[500],
+                          color: Color(0xFF2B1B12),
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       Text(
                         'Check back later for new listings',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey[500],
+                          color: Color(0xFF7D6C62),
                         ),
                       ),
                     ],
@@ -2679,14 +2902,17 @@ class _RidersDashboardState extends State<RidersDashboard> {
     );
   }
 
-  // ========== REDESIGNED car CARDS - DARK MODE ONLY ==========
   Widget _buildcarCard({
     required String name,
     required String price,
     required String distance,
     required double rating,
     required Map<String, dynamic> carData,
+    bool isAlternate = false,
   }) {
+    final Color cardBg = isAlternate ? const Color(0xFFF7E9DF) : const Color(0xFFFAF7F4);
+    final Color innerBg = isAlternate ? const Color(0xFFFAF7F4) : const Color(0xFFF7E9DF);
+
     return GestureDetector(
       onTap: () {
         _showcarDetailPopup(carData);
@@ -2694,103 +2920,121 @@ class _RidersDashboardState extends State<RidersDashboard> {
       child: Container(
         width: 180,
         margin: const EdgeInsets.only(right: 12),
-        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF1E293B),
-              Color(0xFF0F172A),
-            ],
-          ),
+          color: const Color(0xFFD6C6B8), // 3D depth lip
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.grey[700]!,
-            width: 1,
-          ),
           boxShadow: [
+            const BoxShadow(
+              color: Color(0x222B1B12),
+              blurRadius: 6,
+              offset: Offset(0, 4),
+            ),
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,  // ADD THIS - prevents overflow
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              height: 70,  // Reduced from 80
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Center(
-                child: Icon(Icons.directions_car, size: 35, color: Colors.white),  // Reduced from 40
-              ),
-            ),
-            const SizedBox(height: 6),  // Reduced from 8
-            Text(
-              name,
-              style: const TextStyle(
-                fontSize: 13,  // Reduced from 14
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 3),  // Reduced from 4
-            Row(
-              children: [
-                const Icon(Icons.star, size: 11, color: Color(0xFFF59E0B)),  // Reduced from 12
-                const SizedBox(width: 3),
-                Text(
-                  rating.toStringAsFixed(1),
-                  style: TextStyle(fontSize: 11, color: Colors.grey[300]),  // Reduced from 12
-                ),
-                const SizedBox(width: 6),
-                Icon(Icons.location_on, size: 11, color: Colors.grey[400]),  // Reduced from 12
-                const SizedBox(width: 3),
-                Text(
-                  distance,
-                  style: TextStyle(fontSize: 11, color: Colors.grey[400]),  // Reduced from 12
-                ),
+        padding: const EdgeInsets.only(bottom: 4.5), // 3D shelf
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                const Color(0xFFFFFFFF),
+                cardBg,
+                const Color(0xFFF3ECE4),
               ],
+              stops: const [0.0, 0.45, 1.0],
             ),
-            const SizedBox(height: 3),
-            if (carData['offer'] != null && carData['offer'].toString() != 'No Offer')
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color(0xFFE2D3C4),
+              width: 1.2,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Container(
-                margin: const EdgeInsets.only(bottom: 3),
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                height: 70,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                  ),
-                  borderRadius: BorderRadius.circular(4),
+                  color: innerBg,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(
-                  _getOfferText(carData['offer']),
-                  style: const TextStyle(
-                    fontSize: 9,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                child: Center(
+                  child: AppIconOrImage(
+                    icon: Icons.directions_car,
+                    imageUrl: (carData['photos'] is List && (carData['photos'] as List).isNotEmpty)
+                        ? (carData['photos'] as List).first.toString()
+                        : null,
+                    iconColor: const Color(0xFFFF5A1F),
+                    size: 35,
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
               ),
-            Text(
-              price,
-              style: const TextStyle(
-                fontSize: 13,  // Reduced from 14
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF3B82F6),
+              const SizedBox(height: 6),
+              Text(
+                name,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2B1B12),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
-          ],
+              const SizedBox(height: 3),
+              Row(
+                children: [
+                  const Icon(Icons.star, size: 11, color: Color(0xFFFF5A1F)),
+                  const SizedBox(width: 3),
+                  Text(
+                    rating.toStringAsFixed(1),
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF2B1B12), fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(width: 6),
+                  const Icon(Icons.location_on, size: 11, color: Color(0xFF7D6C62)),
+                  const SizedBox(width: 3),
+                  Text(
+                    distance,
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF7D6C62)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 3),
+              if (_getOfferText(carData['offer']).isNotEmpty)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF5A1F),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    _getOfferText(carData['offer']),
+                    style: const TextStyle(
+                      fontSize: 9,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              Text(
+                price,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2B1B12),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -2804,41 +3048,63 @@ class _RidersDashboardState extends State<RidersDashboard> {
         _showcarDetailPopup(carData);
       },
       child: Container(
-        padding: const EdgeInsets.all(12),
+        margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF1E293B),
-              Color(0xFF0F172A),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Colors.grey[700]!,
-            width: 1,
-          ),
+          color: const Color(0xFFD6C6B8), // 3D depth lip
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
+            const BoxShadow(
+              color: Color(0x222B1B12),
+              blurRadius: 6,
+              offset: Offset(0, 4),
+            ),
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 5,
-              offset: const Offset(0, 1),
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
-        child: Row(
-          children: [
+        padding: const EdgeInsets.only(bottom: 4.5), // 3D shelf
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFFFFFFFF),
+                Color(0xFFFAF7F4),
+                Color(0xFFF3ECE4),
+              ],
+              stops: [0.0, 0.45, 1.0],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color(0xFFE2D3C4),
+              width: 1.2,
+            ),
+          ),
+          child: Row(
+            children: [
             Container(
               width: 60,
               height: 60,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                ),
-                borderRadius: BorderRadius.circular(8),
+                color: const Color(0xFFF7E9DF),
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.directions_car, color: Colors.white, size: 30),
+              child: Center(
+                child: AppIconOrImage(
+                  icon: Icons.directions_car,
+                  imageUrl: (carData['photos'] is List && (carData['photos'] as List).isNotEmpty)
+                      ? (carData['photos'] as List).first.toString()
+                      : null,
+                  iconColor: const Color(0xFFFF5A1F),
+                  size: 30,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -2850,24 +3116,24 @@ class _RidersDashboardState extends State<RidersDashboard> {
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      color: Color(0xFF2B1B12),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(Icons.star, size: 14, color: Color(0xFFF59E0B)),
+                      const Icon(Icons.star, size: 14, color: Color(0xFFFF5A1F)),
                       const SizedBox(width: 4),
                       Text(
                         carData['rating'].toStringAsFixed(1),
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey[300]),
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF2B1B12)),
                       ),
                       const SizedBox(width: 8),
-                      Icon(Icons.location_on, size: 12, color: Colors.grey[400]),
+                      const Icon(Icons.location_on, size: 12, color: Color(0xFF7D6C62)),
                       const SizedBox(width: 4),
                       Text(
                         '${(carData['distance'] as double).toStringAsFixed(1)} km',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF7D6C62)),
                       ),
                     ],
                   ),
@@ -2877,15 +3143,13 @@ class _RidersDashboardState extends State<RidersDashboard> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                if (carData['offer'] != null && carData['offer'].toString() != 'No Offer')
+                if (_getOfferText(carData['offer']).isNotEmpty)
                   Container(
                     margin: const EdgeInsets.only(bottom: 4),
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                      ),
-                      borderRadius: BorderRadius.circular(4),
+                      color: const Color(0xFFFF5A1F),
+                      borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
                       _getOfferText(carData['offer']),
@@ -2901,25 +3165,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF3B82F6),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                    ),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    carData['type'],
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    color: Color(0xFF2B1B12),
                   ),
                 ),
               ],
@@ -2927,14 +3173,14 @@ class _RidersDashboardState extends State<RidersDashboard> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
-  // ========== REDESIGNED RIDES TAB - DARK MODE ONLY ==========
   Widget _buildRidesTab() {
     if (_isLoadingRides) {
       return const Center(
-        child: CircularProgressIndicator(color: Color(0xFF3B82F6)),
+        child: CircularProgressIndicator(color: Color(0xFFFF5A1F)),
       );
     }
 
@@ -2947,15 +3193,13 @@ class _RidersDashboardState extends State<RidersDashboard> {
               width: 100,
               height: 100,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                ),
+                color: const Color(0xFFFF5A1F),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF3B82F6).withOpacity(0.3),
+                    color: const Color(0xFFFF5A1F).withOpacity(0.25),
                     blurRadius: 20,
-                    spreadRadius: 10,
+                    spreadRadius: 6,
                   ),
                 ],
               ),
@@ -2967,41 +3211,69 @@ class _RidersDashboardState extends State<RidersDashboard> {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: Color(0xFF2B1B12),
               ),
             ),
             const SizedBox(height: 8),
-            Text(
+            const Text(
               'Book a car to start your journey',
-              style: TextStyle(color: Colors.grey[400]),
+              style: TextStyle(color: Color(0xFF7D6C62)),
             ),
             const SizedBox(height: 24),
             Container(
+              padding: const EdgeInsets.only(bottom: 4.5),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                ),
-                borderRadius: BorderRadius.circular(12),
+                color: const Color(0xFFCC3F0C),
+                borderRadius: BorderRadius.circular(14),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF3B82F6).withOpacity(0.3),
+                    color: const Color(0xFFCC3F0C).withOpacity(0.35),
                     blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              child: ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    _selectedIndex = 0;
-                  });
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                  shadowColor: Colors.transparent,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      _selectedIndex = 0;
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0xFFFF7A47), Color(0xFFFF5A1F), Color(0xFFE64A12)],
+                        stops: [0.0, 0.45, 1.0],
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.35),
+                        width: 1,
+                      ),
+                    ),
+                    child: const Text(
+                      'Find a Car',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        shadows: [
+                          Shadow(
+                            color: Color(0x66000000),
+                            offset: Offset(0, 1),
+                            blurRadius: 2,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-                child: const Text('Find a Car', style: TextStyle(fontSize: 16)),
               ),
             ),
           ],
@@ -3011,7 +3283,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
 
     return RefreshIndicator(
       onRefresh: _loadMyRides,
-      color: const Color(0xFFFFFFFF),
+      color: const Color(0xFFFF5A1F),
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: _myRides.length,
@@ -3021,203 +3293,236 @@ class _RidersDashboardState extends State<RidersDashboard> {
           bool isOngoing = ride.handoverDate == null && ride.status != 'completed' && ride.status != 'cancelled';
 
           return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.only(bottom: 14),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF1E293B),
-                  Color(0xFF0F172A),
-                ],
-              ),
+              color: isOngoing ? const Color(0xFFCC3F0C) : const Color(0xFFD6C6B8),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isOngoing
-                    ? const Color(0xFF3B82F6)
-                    : Colors.grey[700]!,
-                width: isOngoing ? 2 : 1,
-              ),
               boxShadow: [
                 BoxShadow(
                   color: isOngoing
-                      ? const Color(0xFF3B82F6).withOpacity(0.15)
-                      : Colors.black.withOpacity(0.2),
-                  blurRadius: isOngoing ? 15 : 10,
-                  offset: const Offset(0, 2),
+                      ? const Color(0xFFCC3F0C).withOpacity(0.35)
+                      : const Color(0x222B1B12),
+                  blurRadius: isOngoing ? 10 : 6,
+                  offset: const Offset(0, 4),
+                ),
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 14,
+                  offset: const Offset(0, 6),
                 ),
               ],
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
+            padding: const EdgeInsets.only(bottom: 4.5),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xFFFFFFFF), Color(0xFFFAF7F4), Color(0xFFF3ECE4)],
+                  stops: [0.0, 0.45, 1.0],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isOngoing ? const Color(0xFFFF5A1F) : const Color(0xFFE2D3C4),
+                  width: isOngoing ? 1.6 : 1.2,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF7E9DF),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        borderRadius: BorderRadius.circular(12),
+                        child: const Icon(Icons.directions_car, color: Color(0xFFFF5A1F), size: 28),
                       ),
-                      child: const Icon(Icons.directions_car, color: Colors.white, size: 28),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            ride.carName,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              ride.carName,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2B1B12),
+                              ),
                             ),
+                            Text(
+                              'Booking ID: ${ride.id.substring(0, 8)}...',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF7D6C62),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isOngoing
+                              ? const Color(0xFFFF5A1F)
+                              : (ride.status == 'completed'
+                              ? const Color(0xFF2E7D32)
+                              : const Color(0xFF7D6C62)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          isOngoing ? 'ONGOING' : (ride.status == 'completed' ? 'COMPLETED' : ride.status.toUpperCase()),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
                           ),
-                          Text(
-                            'Booking ID: ${ride.id.substring(0, 8)}...',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[400],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Divider(
+                    color: Color(0xFFE5D7C9),
+                    height: 1,
+                  ),
+                  const SizedBox(height: 8),
+
+                  if (ride.startDateTime != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.calendar_today, size: 14, color: Color(0xFF7D6C62)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Rented: ${_formatDateTime(ride.startDateTime!)}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF7D6C62),
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        gradient: isOngoing
-                            ? const LinearGradient(
-                          colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                        )
-                            : (ride.status == 'completed'
-                            ? const LinearGradient(
-                          colors: [Color(0xFF10B981), Color(0xFF059669)],
-                        )
-                            : LinearGradient(
-                          colors: [Colors.grey[600]!, Colors.grey[800]!],
-                        )),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        isOngoing ? 'ONGOING' : (ride.status == 'completed' ? 'COMPLETED' : ride.status.toUpperCase()),
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                const Divider(
-                  color: Colors.grey,
-                  height: 1,
-                ),
-                const SizedBox(height: 8),
 
-                if (ride.startDateTime != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
-                      children: [
-                        Icon(Icons.calendar_today, size: 14, color: Colors.grey[400]),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Rented: ${_formatDateTime(ride.startDateTime!)}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[400],
+                  if (ride.handoverDate != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.handshake, size: 14, color: Color(0xFF2E7D32)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Handed Over: ${_formatDateTime(ride.handoverDate!)}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF2E7D32),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
 
-                if (ride.handoverDate != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.handshake, size: 14, color: Color(0xFF10B981)),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Handed Over: ${_formatDateTime(ride.handoverDate!)}',
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.access_time, size: 14, color: Color(0xFF7D6C62)),
+                          const SizedBox(width: 4),
+                          Text(
+                            _getRentalTypeText(ride.rentalType),
                             style: const TextStyle(
                               fontSize: 12,
-                              color: Color(0xFF10B981),
+                              color: Color(0xFF7D6C62),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        '₹${ride.amount.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFFF5A1F),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  if (isOngoing)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.only(bottom: 3.5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFCC3F0C),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFCC3F0C).withOpacity(0.35),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              _showRideDetailsDialog(ride);
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [Color(0xFFFF7A47), Color(0xFFFF5A1F), Color(0xFFE64A12)],
+                                  stops: [0.0, 0.45, 1.0],
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.35),
+                                  width: 1,
+                                ),
+                              ),
+                              child: const Text(
+                                'View Ride Details',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                  shadows: [
+                                    Shadow(
+                                      color: Color(0x66000000),
+                                      offset: Offset(0, 1),
+                                      blurRadius: 2,
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.access_time, size: 14, color: Colors.grey[400]),
-                        const SizedBox(width: 4),
-                        Text(
-                          _getRentalTypeText(ride.rentalType),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[400],
-                          ),
-                        ),
-                      ],
-                    ),
-                    Text(
-                      '₹${ride.amount.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF3B82F6),
                       ),
                     ),
-                  ],
-                ),
-
-                if (isOngoing)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                        ),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: ElevatedButton(
-                        onPressed: () {
-                          _showRideDetailsDialog(ride);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          shadowColor: Colors.transparent,
-                        ),
-                        child: const Text('View Ride Details'),
-                      ),
-                    ),
-                  ),
-              ],
+                ],
+              ),
             ),
           );
         },
@@ -3225,7 +3530,6 @@ class _RidersDashboardState extends State<RidersDashboard> {
     );
   }
 
-  // ========== REDESIGNED PROFILE TAB - DARK MODE ONLY ==========
   Widget _buildProfileTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -3235,21 +3539,20 @@ class _RidersDashboardState extends State<RidersDashboard> {
             width: 100,
             height: 100,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-              ),
+              color: const Color(0xFFFAF7F4),
               shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFE5D7C9), width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF3B82F6).withOpacity(0.3),
-                  blurRadius: 20,
-                  spreadRadius: 10,
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
             child: const Icon(
               Icons.person,
-              color: Colors.white,
+              color: Color(0xFFFF5A1F),
               size: 50,
             ),
           ),
@@ -3259,12 +3562,12 @@ class _RidersDashboardState extends State<RidersDashboard> {
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: Color(0xFF2B1B12),
             ),
           ),
           Text(
             widget.userData['email'] ?? 'rider@example.com',
-            style: TextStyle(color: Colors.grey[400]),
+            style: const TextStyle(color: Color(0xFF7D6C62)),
           ),
           const SizedBox(height: 24),
           GestureDetector(
@@ -3274,7 +3577,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                 MaterialPageRoute(
                   builder: (context) => RiderPersonalInformation(
                     userData: widget.userData,
-                    isDarkMode: true,
+                    isDarkMode: false,
                   ),
                 ),
               );
@@ -3290,8 +3593,8 @@ class _RidersDashboardState extends State<RidersDashboard> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => RiderHelpSupport(
-                    isDarkMode: true,
+                  builder: (context) => const RiderHelpSupport(
+                    isDarkMode: false,
                   ),
                 ),
               );
@@ -3307,8 +3610,8 @@ class _RidersDashboardState extends State<RidersDashboard> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => AboutcarrzzRiders(
-                    isDarkMode: true,
+                  builder: (context) => const AboutcarrzzRiders(
+                    isDarkMode: false,
                   ),
                 ),
               );
@@ -3322,31 +3625,58 @@ class _RidersDashboardState extends State<RidersDashboard> {
           const SizedBox(height: 24),
           Container(
             width: double.infinity,
+            padding: const EdgeInsets.only(bottom: 4.5),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-              ),
-              borderRadius: BorderRadius.circular(12),
+              color: const Color(0xFFCC3F0C),
+              borderRadius: BorderRadius.circular(14),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF3B82F6).withOpacity(0.3),
+                  color: const Color(0xFFCC3F0C).withOpacity(0.35),
                   blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
-            child: ElevatedButton(
-              onPressed: () {
-                _showLogoutDialog();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shadowColor: Colors.transparent,
-              ),
-              child: const Text(
-                'Logout',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  _showLogoutDialog();
+                },
+                borderRadius: BorderRadius.circular(14),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0xFFFF7A47), Color(0xFFFF5A1F), Color(0xFFE64A12)],
+                      stops: [0.0, 0.45, 1.0],
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.35),
+                      width: 1,
+                    ),
+                  ),
+                  child: const Text(
+                    'Logout',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      shadows: [
+                        Shadow(
+                          color: Color(0x66000000),
+                          offset: Offset(0, 1),
+                          blurRadius: 2,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
@@ -3362,62 +3692,70 @@ class _RidersDashboardState extends State<RidersDashboard> {
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF1E293B),
-            Color(0xFF0F172A),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.grey[700]!,
-          width: 1,
-        ),
+        color: const Color(0xFFD6C6B8),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
+          const BoxShadow(
+            color: Color(0x202B1B12),
+            blurRadius: 6,
+            offset: Offset(0, 3),
+          ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 5,
-            offset: const Offset(0, 1),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
+      padding: const EdgeInsets.only(bottom: 3.5),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFFFFFFF), Color(0xFFFAF7F4), Color(0xFFF3ECE4)],
+            stops: [0.0, 0.45, 1.0],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFFE2D3C4),
+            width: 1.2,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF7E9DF),
+                borderRadius: BorderRadius.circular(10),
               ),
-              borderRadius: BorderRadius.circular(8),
+              child: Icon(icon, color: const Color(0xFFFF5A1F), size: 20),
             ),
-            child: Icon(icon, color: Colors.white, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF2B1B12),
+                    ),
                   ),
-                ),
-                Text(
-                  subtitle,
-                  style: TextStyle(fontSize: 12, color: Colors.grey[400]),
-                ),
-              ],
+                  Text(
+                    subtitle,
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF7D6C62)),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const Icon(Icons.chevron_right, color: Colors.grey),
-        ],
+            const Icon(Icons.chevron_right, color: Color(0xFF7D6C62)),
+          ],
+        ),
       ),
     );
   }

@@ -18,21 +18,25 @@ class AboutcarrzzRiders extends StatefulWidget {
 class _AboutcarrzzRidersState extends State<AboutcarrzzRiders> {
   @override
   Widget build(BuildContext context) {
-    final bool isDark = widget.isDarkMode;
+    const bool isDark = false;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF111827) : Colors.grey[50],
+      backgroundColor: const Color(0xFFEDE1D5),
       appBar: AppBar(
-        title: const Text('About Carzzz'),
-        backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
-        foregroundColor: isDark ? Colors.white : const Color(0xFF1F2937),
+        title: const Text('About Carzzz', style: TextStyle(color: Color(0xFF2B1B12), fontWeight: FontWeight.bold)),
+        backgroundColor: const Color(0xFFFAF7F4),
+        foregroundColor: const Color(0xFF2B1B12),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF2B1B12)),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: SingleChildScrollView(
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        color: const Color(0xFFEDE1D5),
+        child: SingleChildScrollView(
         child: Column(
           children: [
             // Hero Section with Logo
@@ -140,7 +144,7 @@ class _AboutcarrzzRidersState extends State<AboutcarrzzRiders> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1F2937) : Colors.white,
+                      color: const Color(0xFFFAF7F4),
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -158,30 +162,30 @@ class _AboutcarrzzRidersState extends State<AboutcarrzzRiders> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF3B82F6).withOpacity(0.1),
+                                color: const Color(0xFFF7E9DF),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Icon(
                                 Icons.currency_rupee,
-                                color: Color(0xFF3B82F6),
+                                color: Color(0xFFFF5A1F),
                                 size: 24,
                               ),
                             ),
                             const SizedBox(width: 12),
-                            Expanded(
+                            const Expanded(
                               child: Text(
                                 'Rental Pricing',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white : const Color(0xFF1F2937),
+                                  color: Color(0xFF2B1B12),
                                 ),
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 16),
-                        Text(
+                        const Text(
                           '• Daily rentals starting from just ₹149/day\n'
                               '• Platform fee of ₹50 per booking\n'
                               '• Discount offers up to 50% on selected Cars\n'
@@ -191,7 +195,7 @@ class _AboutcarrzzRidersState extends State<AboutcarrzzRiders> {
                           style: TextStyle(
                             fontSize: 14,
                             height: 1.6,
-                            color: isDark ? Colors.grey[300] : Colors.grey[700],
+                            color: Color(0xFF7D6C62),
                           ),
                         ),
                       ],
@@ -204,7 +208,7 @@ class _AboutcarrzzRidersState extends State<AboutcarrzzRiders> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1F2937) : Colors.white,
+                      color: const Color(0xFFFAF7F4),
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -222,30 +226,30 @@ class _AboutcarrzzRidersState extends State<AboutcarrzzRiders> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF3B82F6).withOpacity(0.1),
+                                color: const Color(0xFFF7E9DF),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Icon(
                                 Icons.assignment,
-                                color: Color(0xFF3B82F6),
+                                color: Color(0xFFFF5A1F),
                                 size: 24,
                               ),
                             ),
                             const SizedBox(width: 12),
-                            Expanded(
+                            const Expanded(
                               child: Text(
                                 'Requirements',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white : const Color(0xFF1F2937),
+                                  color: Color(0xFF2B1B12),
                                 ),
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 16),
-                        Text(
+                        const Text(
                           '• Valid Driving Licence (Mandatory)\n'
                               '• PAN Card for verification\n'
                               '• Age: 18+ years\n'
@@ -254,7 +258,7 @@ class _AboutcarrzzRidersState extends State<AboutcarrzzRiders> {
                           style: TextStyle(
                             fontSize: 14,
                             height: 1.6,
-                            color: isDark ? Colors.grey[300] : Colors.grey[700],
+                            color: Color(0xFF7D6C62),
                           ),
                         ),
                       ],
@@ -270,7 +274,7 @@ class _AboutcarrzzRidersState extends State<AboutcarrzzRiders> {
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF1F2937) : Colors.white,
+                            color: const Color(0xFFFAF7F4),
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
@@ -280,29 +284,29 @@ class _AboutcarrzzRidersState extends State<AboutcarrzzRiders> {
                               ),
                             ],
                           ),
-                          child: Column(
+                          child: const Column(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.rocket_launch,
                                 size: 32,
-                                color: Color(0xFF3B82F6),
+                                color: Color(0xFFFF5A1F),
                               ),
-                              const SizedBox(height: 8),
+                              SizedBox(height: 8),
                               Text(
                                 'Our Mission',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white : const Color(0xFF1F2937),
+                                  color: Color(0xFF2B1B12),
                                 ),
                               ),
-                              const SizedBox(height: 8),
+                              SizedBox(height: 8),
                               Text(
                                 'To provide affordable, reliable, and hassle-free car rentals for every rider, enabling freedom of movement across the city.',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                  color: Color(0xFF7D6C62),
                                 ),
                               ),
                             ],
@@ -314,7 +318,7 @@ class _AboutcarrzzRidersState extends State<AboutcarrzzRiders> {
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF1F2937) : Colors.white,
+                            color: const Color(0xFFF7E9DF),
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
@@ -324,29 +328,29 @@ class _AboutcarrzzRidersState extends State<AboutcarrzzRiders> {
                               ),
                             ],
                           ),
-                          child: Column(
+                          child: const Column(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.visibility,
                                 size: 32,
-                                color: Color(0xFF3B82F6),
+                                color: Color(0xFFFF5A1F),
                               ),
-                              const SizedBox(height: 8),
+                              SizedBox(height: 8),
                               Text(
                                 'Our Vision',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white : const Color(0xFF1F2937),
+                                  color: Color(0xFF2B1B12),
                                 ),
                               ),
-                              const SizedBox(height: 8),
+                              SizedBox(height: 8),
                               Text(
                                 'To become the most trusted and preferred Car rental platform, empowering millions to explore their cities on two wheels.',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                  color: Color(0xFF7D6C62),
                                 ),
                               ),
                             ],
@@ -359,23 +363,23 @@ class _AboutcarrzzRidersState extends State<AboutcarrzzRiders> {
                   const SizedBox(height: 32),
 
                   // Footer
-                  Center(
+                  const Center(
                     child: Column(
                       children: [
-                        const Text(
+                        Text(
                           'Ride Safe, Ride Free with Carzzz',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: Color(0xFF3B82F6),
+                            color: Color(0xFFFF5A1F),
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        SizedBox(height: 8),
                         Text(
                           '© 2026 Carzz. All rights reserved.',
                           style: TextStyle(
                             fontSize: 12,
-                            color: isDark ? Colors.grey[500] : Colors.grey[400],
+                            color: Color(0xFF7D6C62),
                           ),
                         ),
                       ],
@@ -388,6 +392,7 @@ class _AboutcarrzzRidersState extends State<AboutcarrzzRiders> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -404,7 +409,7 @@ class _AboutcarrzzRidersState extends State<AboutcarrzzRiders> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1F2937) : Colors.white,
+        color: const Color(0xFFFAF7F4),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -422,22 +427,22 @@ class _AboutcarrzzRidersState extends State<AboutcarrzzRiders> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF3B82F6).withOpacity(0.1),
+                  color: const Color(0xFFF7E9DF),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   icon,
-                  color: const Color(0xFF3B82F6),
+                  color: const Color(0xFFFF5A1F),
                   size: 24,
                 ),
               ),
               const SizedBox(width: 12),
               Text(
                 title,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : const Color(0xFF1F2937),
+                  color: Color(0xFF2B1B12),
                 ),
               ),
             ],
@@ -446,10 +451,10 @@ class _AboutcarrzzRidersState extends State<AboutcarrzzRiders> {
           if (content.isNotEmpty)
             Text(
               content,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14,
                 height: 1.6,
-                color: isDark ? Colors.grey[300] : Colors.grey[700],
+                color: Color(0xFF7D6C62),
               ),
             ),
           if (isListSection && listItems != null)
@@ -457,10 +462,10 @@ class _AboutcarrzzRidersState extends State<AboutcarrzzRiders> {
               padding: const EdgeInsets.only(bottom: 12),
               child: Text(
                 item,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
                   height: 1.5,
-                  color: isDark ? Colors.grey[300] : Colors.grey[700],
+                  color: Color(0xFF7D6C62),
                 ),
               ),
             )),
@@ -478,10 +483,10 @@ class _AboutcarrzzRidersState extends State<AboutcarrzzRiders> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1F2937) : Colors.white,
+        color: const Color(0xFFFAF7F4),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? Colors.grey[700]! : Colors.grey[200]!,
+          color: const Color(0xFFE5D7C9),
         ),
       ),
       child: Column(
@@ -489,25 +494,25 @@ class _AboutcarrzzRidersState extends State<AboutcarrzzRiders> {
         children: [
           Icon(
             icon,
-            color: const Color(0xFF3B82F6),
+            color: const Color(0xFFFF5A1F),
             size: 28,
           ),
           const SizedBox(height: 8),
           Text(
             title,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : const Color(0xFF1F2937),
+              color: Color(0xFF2B1B12),
             ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 4),
           Text(
             description,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 11,
-              color: isDark ? Colors.grey[400] : Colors.grey[600],
+              color: Color(0xFF7D6C62),
             ),
             textAlign: TextAlign.center,
           ),

@@ -26,7 +26,7 @@ class _RiderHelpSupportState extends State<RiderHelpSupport> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('$type copied to clipboard!'),
-        backgroundColor: const Color(0xFF3B82F6),
+        backgroundColor: const Color(0xFFFF5A1F),
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
@@ -43,27 +43,39 @@ class _RiderHelpSupportState extends State<RiderHelpSupport> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFFFAF7F4),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        title: const Text('Call Support'),
-        content: Text('Would you like to call $supportPhoneNumber?'),
+        title: const Text('Call Support', style: TextStyle(color: Color(0xFF2B1B12))),
+        content: Text('Would you like to call $supportPhoneNumber?', style: const TextStyle(color: Color(0xFF7D6C62))),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF7D6C62))),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // For real device, you can use: launchUrl(Uri.parse('tel:$supportPhoneNumber'));
-              // For now, just copy the number
-              _copyToClipboard(supportPhoneNumber, 'Phone number');
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF3B82F6),
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF5A1F),
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: const Text('Call'),
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                // For real device, you can use: launchUrl(Uri.parse('tel:$supportPhoneNumber'));
+                // For now, just copy the number
+                _copyToClipboard(supportPhoneNumber, 'Phone number');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                foregroundColor: Colors.white,
+                shadowColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Call'),
+            ),
           ),
         ],
       ),
@@ -78,21 +90,25 @@ class _RiderHelpSupportState extends State<RiderHelpSupport> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark = widget.isDarkMode;
+    const bool isDark = false;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF111827) : Colors.grey[50],
+      backgroundColor: const Color(0xFFEDE1D5),
       appBar: AppBar(
-        title: const Text('Help & Support'),
-        backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
-        foregroundColor: isDark ? Colors.white : const Color(0xFF1F2937),
+        title: const Text('Help & Support', style: TextStyle(color: Color(0xFF2B1B12), fontWeight: FontWeight.bold)),
+        backgroundColor: const Color(0xFFFAF7F4),
+        foregroundColor: const Color(0xFF2B1B12),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF2B1B12)),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: SingleChildScrollView(
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        color: const Color(0xFFEDE1D5),
+        child: SingleChildScrollView(
         child: Column(
           children: [
             // Header Section with Icon
@@ -104,30 +120,30 @@ class _RiderHelpSupportState extends State<RiderHelpSupport> {
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF3B82F6).withOpacity(0.1),
+                      color: const Color(0xFFF7E9DF),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
                       Icons.headset_mic,
                       size: 40,
-                      color: Color(0xFF3B82F6),
+                      color: Color(0xFFFF5A1F),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text(
+                  const Text(
                     'How can we help you?',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : const Color(0xFF1F2937),
+                      color: Color(0xFF2B1B12),
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
+                  const Text(
                     'We\'re here to assist you 24/7',
                     style: TextStyle(
                       fontSize: 14,
-                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      color: Color(0xFF7D6C62),
                     ),
                   ),
                 ],
@@ -144,7 +160,7 @@ class _RiderHelpSupportState extends State<RiderHelpSupport> {
                     margin: const EdgeInsets.only(bottom: 16),
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1F2937) : Colors.white,
+                      color: const Color(0xFFFAF7F4),
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -162,17 +178,17 @@ class _RiderHelpSupportState extends State<RiderHelpSupport> {
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF3B82F6).withOpacity(0.1),
+                                color: const Color(0xFFF7E9DF),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Icon(
                                 Icons.phone,
-                                color: Color(0xFF3B82F6),
+                                color: Color(0xFFFF5A1F),
                                 size: 24,
                               ),
                             ),
                             const SizedBox(width: 16),
-                            Expanded(
+                            const Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -181,14 +197,14 @@ class _RiderHelpSupportState extends State<RiderHelpSupport> {
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
-                                      color: isDark ? Colors.white : const Color(0xFF1F2937),
+                                      color: Color(0xFF2B1B12),
                                     ),
                                   ),
                                   Text(
                                     'Available 24/7 for immediate assistance',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                      color: Color(0xFF7D6C62),
                                     ),
                                   ),
                                 ],
@@ -200,10 +216,10 @@ class _RiderHelpSupportState extends State<RiderHelpSupport> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF111827) : Colors.grey[50],
+                            color: const Color(0xFFF7E9DF),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: isDark ? Colors.grey[700]! : Colors.grey[200]!,
+                              color: const Color(0xFFE5D7C9),
                             ),
                           ),
                           child: Row(
@@ -214,16 +230,16 @@ class _RiderHelpSupportState extends State<RiderHelpSupport> {
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFF3B82F6),
+                                    color: Color(0xFFFF5A1F),
                                   ),
                                 ),
                               ),
                               IconButton(
                                 onPressed: () => _copyToClipboard(supportPhoneNumber, 'Phone number'),
-                                icon: Icon(
+                                icon: const Icon(
                                   Icons.copy,
                                   size: 20,
-                                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                  color: Color(0xFF7D6C62),
                                 ),
                                 tooltip: 'Copy number',
                               ),
@@ -232,7 +248,7 @@ class _RiderHelpSupportState extends State<RiderHelpSupport> {
                                 icon: const Icon(
                                   Icons.call,
                                   size: 20,
-                                  color: Color(0xFF3B82F6),
+                                  color: Color(0xFFFF5A1F),
                                 ),
                                 tooltip: 'Call now',
                               ),
@@ -249,7 +265,7 @@ class _RiderHelpSupportState extends State<RiderHelpSupport> {
                     margin: const EdgeInsets.only(bottom: 16),
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1F2937) : Colors.white,
+                      color: const Color(0xFFFAF7F4),
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -267,17 +283,17 @@ class _RiderHelpSupportState extends State<RiderHelpSupport> {
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF3B82F6).withOpacity(0.1),
+                                color: const Color(0xFFF7E9DF),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Icon(
                                 Icons.help_outline,
-                                color: Color(0xFF3B82F6),
+                                color: Color(0xFFFF5A1F),
                                 size: 24,
                               ),
                             ),
                             const SizedBox(width: 16),
-                            Expanded(
+                            const Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -286,14 +302,14 @@ class _RiderHelpSupportState extends State<RiderHelpSupport> {
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
-                                      color: isDark ? Colors.white : const Color(0xFF1F2937),
+                                      color: Color(0xFF2B1B12),
                                     ),
                                   ),
                                   Text(
                                     'Common questions answered',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                      color: Color(0xFF7D6C62),
                                     ),
                                   ),
                                 ],
@@ -329,6 +345,7 @@ class _RiderHelpSupportState extends State<RiderHelpSupport> {
           ],
         ),
       ),
+      ),
     );
   }
 
@@ -342,18 +359,18 @@ class _RiderHelpSupportState extends State<RiderHelpSupport> {
       children: [
         Text(
           '• $question',
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: isDark ? Colors.white : const Color(0xFF1F2937),
+            color: Color(0xFF2B1B12),
           ),
         ),
         const SizedBox(height: 4),
         Text(
           answer,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 13,
-            color: isDark ? Colors.grey[400] : Colors.grey[600],
+            color: Color(0xFF7D6C62),
             height: 1.4,
           ),
         ),

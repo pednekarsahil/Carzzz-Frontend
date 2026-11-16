@@ -238,17 +238,9 @@ class _RiderEmailVerificationState extends State<RiderEmailVerification> with Si
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFEDE1D5),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFE0F2FE),
-              Color(0xFFF0FDF4),
-            ],
-          ),
-        ),
+        color: const Color(0xFFEDE1D5),
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -268,7 +260,7 @@ class _RiderEmailVerificationState extends State<RiderEmailVerification> with Si
                             icon: Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.9),
+                                color: const Color(0xFFE6D6C8),
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
@@ -279,7 +271,7 @@ class _RiderEmailVerificationState extends State<RiderEmailVerification> with Si
                               ),
                               child: const Icon(
                                 Icons.arrow_back,
-                                color: Color(0xFF3B82F6),
+                                color: Color(0xFF2B1B12),
                               ),
                             ),
                           ),
@@ -292,11 +284,11 @@ class _RiderEmailVerificationState extends State<RiderEmailVerification> with Si
                         width: 80,
                         height: 80,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF3B82F6),
+                          color: const Color(0xFFFF5A1F),
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF3B82F6).withOpacity(0.3),
+                              color: const Color(0xFFFF5A1F).withOpacity(0.3),
                               blurRadius: 20,
                               offset: const Offset(0, 10),
                             ),
@@ -316,17 +308,17 @@ class _RiderEmailVerificationState extends State<RiderEmailVerification> with Si
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1F2937),
+                          color: Color(0xFF2B1B12),
                         ),
                       ),
                       const SizedBox(height: 12),
 
                       // Subtitle
-                      Text(
+                      const Text(
                         'We\'ve sent a 6-digit verification code to',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey[600],
+                          color: Color(0xFF7D6C62),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -335,7 +327,7 @@ class _RiderEmailVerificationState extends State<RiderEmailVerification> with Si
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF3B82F6),
+                          color: Color(0xFFFF5A1F),
                         ),
                       ),
                       const SizedBox(height: 32),
@@ -358,23 +350,23 @@ class _RiderEmailVerificationState extends State<RiderEmailVerification> with Si
                                 style: const TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF1F2937),
+                                  color: Color(0xFF2B1B12),
                                 ),
                                 decoration: InputDecoration(
                                   counterText: '',
                                   filled: true,
-                                  fillColor: Colors.white,
+                                  fillColor: const Color(0xFFFAF7F4),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.grey[300]!),
+                                    borderSide: const BorderSide(color: Color(0xFFE5D7C9)),
                                   ),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.grey[300]!),
+                                    borderSide: const BorderSide(color: Color(0xFFE5D7C9)),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 2),
+                                    borderSide: const BorderSide(color: Color(0xFFFF5A1F), width: 2),
                                   ),
                                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
                                 ),
@@ -395,7 +387,7 @@ class _RiderEmailVerificationState extends State<RiderEmailVerification> with Si
                       // Verify Button
                       _buildButton(
                         text: 'Verify & Create Account',
-                        color: const Color(0xFF3B82F6),
+                        color: const Color(0xFFFF5A1F),
                         isLoading: _isVerifying,
                         onTap: _verifyOtp,
                       ),
@@ -407,9 +399,9 @@ class _RiderEmailVerificationState extends State<RiderEmailVerification> with Si
                         children: [
                           Text(
                             _canResend ? 'Didn\'t receive code? ' : 'Resend code in $_resendTimer seconds',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 14,
-                              color: Colors.grey[600],
+                              color: Color(0xFF7D6C62),
                             ),
                           ),
                           if (_canResend)
@@ -421,13 +413,13 @@ class _RiderEmailVerificationState extends State<RiderEmailVerification> with Si
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3B82F6)),
+                                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF5A1F)),
                                 ),
                               )
                                   : const Text(
                                 'Resend',
                                 style: TextStyle(
-                                  color: Color(0xFF3B82F6),
+                                  color: Color(0xFFFF5A1F),
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -440,24 +432,24 @@ class _RiderEmailVerificationState extends State<RiderEmailVerification> with Si
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.8),
+                          color: const Color(0xFFFAF7F4),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey[200]!),
+                          border: Border.all(color: const Color(0xFFE5D7C9)),
                         ),
-                        child: Row(
+                        child: const Row(
                           children: [
                             Icon(
                               Icons.info_outline,
                               size: 20,
-                              color: Colors.grey[500],
+                              color: Color(0xFF7D6C62),
                             ),
-                            const SizedBox(width: 12),
+                            SizedBox(width: 12),
                             Expanded(
                               child: Text(
                                 'Please check your spam folder if you don\'t receive the email within a few minutes.',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey[600],
+                                  color: Color(0xFF7D6C62),
                                   height: 1.4,
                                 ),
                               ),
@@ -476,47 +468,74 @@ class _RiderEmailVerificationState extends State<RiderEmailVerification> with Si
     );
   }
 
+  // ========== 3D BUTTON ==========
   Widget _buildButton({
     required String text,
     required Color color,
     required bool isLoading,
     required VoidCallback onTap,
   }) {
+    const Color depthLipColor = Color(0xFFCC3F0C);
+    const Color highlightColor = Color(0xFFFF7A47);
+    const Color lowerFaceColor = Color(0xFFE64A12);
+
     return GestureDetector(
       onTap: isLoading ? null : onTap,
       child: Container(
         width: double.infinity,
-        height: 50,
+        padding: const EdgeInsets.only(bottom: 4.5),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [color, color.withOpacity(0.8)],
-          ),
-          borderRadius: BorderRadius.circular(12),
+          color: depthLipColor,
+          borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+              color: depthLipColor.withOpacity(0.40),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
             ),
           ],
         ),
-        child: Center(
-          child: isLoading
-              ? const SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+        child: Container(
+          height: 48,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [highlightColor, Color(0xFFFF5A1F), lowerFaceColor],
+              stops: [0.0, 0.45, 1.0],
             ),
-          )
-              : Text(
-            text,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.35),
+              width: 1,
             ),
+          ),
+          child: Center(
+            child: isLoading
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : Text(
+                    text,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                      shadows: [
+                        Shadow(
+                          color: Color(0x554A1400),
+                          offset: Offset(0, 1),
+                          blurRadius: 2,
+                        ),
+                      ],
+                    ),
+                  ),
           ),
         ),
       ),

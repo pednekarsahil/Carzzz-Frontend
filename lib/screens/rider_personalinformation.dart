@@ -4,6 +4,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../widgets/app_icon_or_image.dart';
 
 class RiderPersonalInformation extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -155,21 +156,25 @@ class _RiderPersonalInformationState extends State<RiderPersonalInformation> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark = widget.isDarkMode;
+    const bool isDark = false;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF111827) : Colors.grey[50],
+      backgroundColor: const Color(0xFFEDE1D5),
       appBar: AppBar(
-        title: const Text('Personal Information'),
-        backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
-        foregroundColor: Colors.white,
+        title: const Text('Personal Information', style: TextStyle(color: Color(0xFF2B1B12), fontWeight: FontWeight.bold)),
+        backgroundColor: const Color(0xFFFAF7F4),
+        foregroundColor: const Color(0xFF2B1B12),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Form(
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        color: const Color(0xFFEDE1D5),
+        child: Form(
         key: _formKey,
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
@@ -180,7 +185,7 @@ class _RiderPersonalInformationState extends State<RiderPersonalInformation> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1F2937) : Colors.white,
+                  color: const Color(0xFFFAF7F4),
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
@@ -193,34 +198,34 @@ class _RiderPersonalInformationState extends State<RiderPersonalInformation> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'Personal Details',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : const Color(0xFF1F2937),
+                        color: Color(0xFF2B1B12),
                       ),
                     ),
                     const SizedBox(height: 20),
                     // Full Name
                     TextFormField(
                       controller: _fullNameController,
-                      style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                      style: const TextStyle(color: Color(0xFF2B1B12)),
                       decoration: InputDecoration(
                         labelText: 'Full Name',
-                        labelStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
-                        prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF3B82F6)),
+                        labelStyle: const TextStyle(color: Color(0xFF7D6C62)),
+                        prefixIcon: const Icon(Icons.person_outline, color: Color(0xFFFF5A1F)),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: isDark ? Colors.grey[700]! : Colors.grey[300]!),
+                          borderSide: const BorderSide(color: Color(0xFFE5D7C9)),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: isDark ? Colors.grey[700]! : Colors.grey[300]!),
+                          borderSide: const BorderSide(color: Color(0xFFE5D7C9)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 2),
+                          borderSide: const BorderSide(color: Color(0xFFFF5A1F), width: 2),
                         ),
                       ),
                       validator: (value) {
@@ -234,23 +239,23 @@ class _RiderPersonalInformationState extends State<RiderPersonalInformation> {
                     // Email
                     TextFormField(
                       controller: _emailController,
-                      style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                      style: const TextStyle(color: Color(0xFF2B1B12)),
                       keyboardType: TextInputType.emailAddress,
                       decoration: InputDecoration(
                         labelText: 'Email Address',
-                        labelStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
-                        prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF3B82F6)),
+                        labelStyle: const TextStyle(color: Color(0xFF7D6C62)),
+                        prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFFFF5A1F)),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: isDark ? Colors.grey[700]! : Colors.grey[300]!),
+                          borderSide: const BorderSide(color: Color(0xFFE5D7C9)),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: isDark ? Colors.grey[700]! : Colors.grey[300]!),
+                          borderSide: const BorderSide(color: Color(0xFFE5D7C9)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 2),
+                          borderSide: const BorderSide(color: Color(0xFFFF5A1F), width: 2),
                         ),
                       ),
                       validator: (value) {
@@ -267,23 +272,23 @@ class _RiderPersonalInformationState extends State<RiderPersonalInformation> {
                     // Phone Number
                     TextFormField(
                       controller: _phoneController,
-                      style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                      style: const TextStyle(color: Color(0xFF2B1B12)),
                       keyboardType: TextInputType.phone,
                       decoration: InputDecoration(
                         labelText: 'Phone Number',
-                        labelStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
-                        prefixIcon: const Icon(Icons.phone_outlined, color: Color(0xFF3B82F6)),
+                        labelStyle: const TextStyle(color: Color(0xFF7D6C62)),
+                        prefixIcon: const Icon(Icons.phone_outlined, color: Color(0xFFFF5A1F)),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: isDark ? Colors.grey[700]! : Colors.grey[300]!),
+                          borderSide: const BorderSide(color: Color(0xFFE5D7C9)),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: isDark ? Colors.grey[700]! : Colors.grey[300]!),
+                          borderSide: const BorderSide(color: Color(0xFFE5D7C9)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 2),
+                          borderSide: const BorderSide(color: Color(0xFFFF5A1F), width: 2),
                         ),
                       ),
                       validator: (value) {
@@ -300,23 +305,23 @@ class _RiderPersonalInformationState extends State<RiderPersonalInformation> {
                     // Address
                     TextFormField(
                       controller: _addressController,
-                      style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                      style: const TextStyle(color: Color(0xFF2B1B12)),
                       maxLines: 3,
                       decoration: InputDecoration(
                         labelText: 'Address',
-                        labelStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
-                        prefixIcon: const Icon(Icons.location_on_outlined, color: Color(0xFF3B82F6)),
+                        labelStyle: const TextStyle(color: Color(0xFF7D6C62)),
+                        prefixIcon: const Icon(Icons.location_on_outlined, color: Color(0xFFFF5A1F)),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: isDark ? Colors.grey[700]! : Colors.grey[300]!),
+                          borderSide: const BorderSide(color: Color(0xFFE5D7C9)),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: isDark ? Colors.grey[700]! : Colors.grey[300]!),
+                          borderSide: const BorderSide(color: Color(0xFFE5D7C9)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 2),
+                          borderSide: const BorderSide(color: Color(0xFFFF5A1F), width: 2),
                         ),
                       ),
                       validator: (value) {
@@ -336,7 +341,7 @@ class _RiderPersonalInformationState extends State<RiderPersonalInformation> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1F2937) : Colors.white,
+                  color: const Color(0xFFFAF7F4),
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
@@ -349,20 +354,20 @@ class _RiderPersonalInformationState extends State<RiderPersonalInformation> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'Document Upload',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : const Color(0xFF1F2937),
+                        color: Color(0xFF2B1B12),
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
+                    const Text(
                       'Please upload clear images of your PAN card and Driving Licence for verification',
                       style: TextStyle(
                         fontSize: 12,
-                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                        color: Color(0xFF7D6C62),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -372,6 +377,7 @@ class _RiderPersonalInformationState extends State<RiderPersonalInformation> {
                       isDark: isDark,
                       title: 'PAN Card',
                       icon: Icons.credit_card,
+                      iconAsset: null, // Option to pass a PNG image asset
                       imageFile: _panCardImage,
                       isLoading: _isUploadingPan,
                       onPickImage: () => _pickImage('pan'),
@@ -385,6 +391,7 @@ class _RiderPersonalInformationState extends State<RiderPersonalInformation> {
                       isDark: isDark,
                       title: 'Driving Licence',
                       icon: Icons.drive_eta,
+                      iconAsset: null, // Option to pass a PNG image asset (e.g. 'assets/drivewithuslogo.png')
                       imageFile: _drivingLicenceImage,
                       isLoading: _isUploadingDriving,
                       onPickImage: () => _pickImage('driving'),
@@ -397,14 +404,19 @@ class _RiderPersonalInformationState extends State<RiderPersonalInformation> {
               const SizedBox(height: 30),
 
               // Save Button
-              SizedBox(
+              Container(
                 width: double.infinity,
                 height: 50,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF5A1F),
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _savePersonalInformation,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3B82F6),
+                    backgroundColor: Colors.transparent,
                     foregroundColor: Colors.white,
+                    shadowColor: Colors.transparent,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -432,6 +444,7 @@ class _RiderPersonalInformationState extends State<RiderPersonalInformation> {
           ),
         ),
       ),
+      ),
     );
   }
 
@@ -439,6 +452,11 @@ class _RiderPersonalInformationState extends State<RiderPersonalInformation> {
     required bool isDark,
     required String title,
     required IconData icon,
+    String? iconAsset,
+    double? iconSize,
+    double? iconScale,
+    double? iconOffsetX,
+    double? iconOffsetY,
     required File? imageFile,
     required bool isLoading,
     required VoidCallback onPickImage,
@@ -447,10 +465,10 @@ class _RiderPersonalInformationState extends State<RiderPersonalInformation> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF111827) : Colors.grey[50],
+        color: const Color(0xFFF7E9DF),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? Colors.grey[700]! : Colors.grey[200]!,
+          color: const Color(0xFFE5D7C9),
         ),
       ),
       child: Column(
@@ -461,18 +479,26 @@ class _RiderPersonalInformationState extends State<RiderPersonalInformation> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF3B82F6).withOpacity(0.1),
+                  color: const Color(0xFFFF5A1F).withOpacity(0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(icon, color: const Color(0xFF3B82F6), size: 20),
+                child: AppIconOrImage(
+                  icon: icon,
+                  imageAsset: iconAsset,
+                  iconColor: const Color(0xFFFF5A1F),
+                  size: iconSize ?? 20,
+                  scale: iconScale ?? 1.0,
+                  offsetX: iconOffsetX ?? 0.0,
+                  offsetY: iconOffsetY ?? 0.0,
+                ),
               ),
               const SizedBox(width: 12),
               Text(
                 title,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white : const Color(0xFF1F2937),
+                  color: Color(0xFF2B1B12),
                 ),
               ),
             ],
@@ -486,10 +512,10 @@ class _RiderPersonalInformationState extends State<RiderPersonalInformation> {
               height: 150,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1F2937) : Colors.white,
+                color: const Color(0xFFFAF7F4),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isDark ? Colors.grey[600]! : Colors.grey[300]!,
+                  color: const Color(0xFFE5D7C9),
                   style: BorderStyle.solid,
                 ),
               ),
@@ -502,27 +528,27 @@ class _RiderPersonalInformationState extends State<RiderPersonalInformation> {
                   width: double.infinity,
                 ),
               )
-                  : Column(
+                  : const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
                     Icons.cloud_upload_outlined,
                     size: 40,
-                    color: isDark ? Colors.grey[500] : Colors.grey[400],
+                    color: Color(0xFFFF5A1F),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Text(
-                    'Tap to upload $title image',
+                    'Tap to upload image',
                     style: TextStyle(
                       fontSize: 12,
-                      color: isDark ? Colors.grey[400] : Colors.grey[500],
+                      color: Color(0xFF7D6C62),
                     ),
                   ),
                   Text(
                     'JPG, PNG supported',
                     style: TextStyle(
                       fontSize: 10,
-                      color: isDark ? Colors.grey[500] : Colors.grey[400],
+                      color: Color(0xFF9A8B82),
                     ),
                   ),
                 ],
@@ -536,40 +562,55 @@ class _RiderPersonalInformationState extends State<RiderPersonalInformation> {
           Row(
             children: [
               Expanded(
-                child: OutlinedButton(
-                  onPressed: onPickImage,
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFF3B82F6)),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE6D6C8),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Text(
-                    'Choose Image',
-                    style: TextStyle(color: Color(0xFF3B82F6)),
+                  child: OutlinedButton(
+                    onPressed: onPickImage,
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      side: BorderSide.none,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      'Choose Image',
+                      style: TextStyle(color: Color(0xFF2B1B12)),
+                    ),
                   ),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: ElevatedButton(
-                  onPressed: onUpload,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3B82F6),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF5A1F),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: isLoading
-                      ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
+                  child: ElevatedButton(
+                    onPressed: onUpload,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
-                  )
-                      : const Text('Upload'),
+                    child: isLoading
+                        ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                        : const Text('Upload'),
+                  ),
                 ),
               ),
             ],

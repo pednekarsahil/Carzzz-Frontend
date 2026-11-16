@@ -36,6 +36,7 @@ import 'partner_forgotpassword.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../widgets/app_icon_or_image.dart';
 
 class PartnerAuthScreen extends StatefulWidget {
   const PartnerAuthScreen({super.key});
@@ -59,6 +60,13 @@ class _PartnerAuthScreenState extends State<PartnerAuthScreen>
     scopes: ['email', 'profile'],
     signInOption: SignInOption.standard,
   );
+
+  // Optional brand logo controls (set e.g. 'assets/icon.png' or any PNG image)
+  static const String? _brandLogoAsset = null;
+  static const double _brandLogoSize = 24.0;
+  static const double _brandLogoScale = 1.0;
+  static const double _brandLogoOffsetX = 0.0; // Negative = Left, Positive = Right
+  static const double _brandLogoOffsetY = 0.0; // Negative = Up, Positive = Down
 
   // Login form controllers
   final TextEditingController _loginEmailController = TextEditingController();
@@ -102,13 +110,13 @@ class _PartnerAuthScreenState extends State<PartnerAuthScreen>
   String? _selectedBusinessType;
 
   // API Base URL with dynamic switching
-  static const bool _usePhysicalDevice = true;
+  static const bool _usePhysicalDevice = false;
 
   String get baseUrl {
     if (_usePhysicalDevice) {
       return 'http://10.0.2.2:3000/api';
     } else {
-      return 'https://bikerzzz-backend.onrender.com/api';
+      return 'https://carzzz-frontend.onrender.com/api';
     }
   }
 
@@ -590,20 +598,33 @@ class _PartnerAuthScreenState extends State<PartnerAuthScreen>
             },
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              setState(() {
-                _isGoogleLoading = false;
-              });
-              await Future.delayed(const Duration(milliseconds: 300));
-              _handlePartnerGoogleSignIn();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF3B82F6),
-              foregroundColor: Colors.white,
+          Container(
+            decoration: BoxDecoration(
+              image: const DecorationImage(
+                image: AssetImage('assets/buttonsbg.png'),
+                fit: BoxFit.cover,
+              ),
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: const Text('Try Again'),
+            child: ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                setState(() {
+                  _isGoogleLoading = false;
+                });
+                await Future.delayed(const Duration(milliseconds: 300));
+                _handlePartnerGoogleSignIn();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                foregroundColor: Colors.white,
+                shadowColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Try Again'),
+            ),
           ),
         ],
       ),
@@ -870,17 +891,11 @@ class _PartnerAuthScreenState extends State<PartnerAuthScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFEDE1D5),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF0F172A),
-              Color(0xFF1E293B),
-            ],
-          ),
-        ),
+        width: double.infinity,
+        height: double.infinity,
+        color: const Color(0xFFEDE1D5),
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -901,165 +916,185 @@ class _PartnerAuthScreenState extends State<PartnerAuthScreen>
                             child: Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                                ),
+                                color: const Color(0xFFE6D6C8),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Icon(
                                 Icons.arrow_back,
-                                color: Colors.white,
-                                size: 20,
+                                color: Color(0xFF2B1B12),
+                                size: 24,
                               ),
                             ),
                           ),
                           const SizedBox(width: 16),
-                          const Text(
-                            'Partner Portal',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
+
                         ],
                       ),
                       const SizedBox(height: 32),
 
-                      // Brand Section
-                      Row(
-                        children: [
-                          Container(
-                            width: 50,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                              ),
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF3B82F6).withOpacity(0.3),
-                                  blurRadius: 20,
-                                  spreadRadius: 5,
+// Brand Section - Centered
+                      Center(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min, // Makes Row take minimum space
+                          children: [
+
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ShaderMask(
+                                  shaderCallback: (bounds) => const LinearGradient(
+                                    colors: [Color(0xFF2B1B12), Color(0xFFFF5A1F)],
+                                  ).createShader(bounds),
+                                  child: const Text(
+                                    'Carzzz Partner',
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
+                                ),
+                                const Text(
+                                  'Grow Your Business',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF7D6C62),
+                                    fontWeight: FontWeight.w400,
+                                    letterSpacing: 2,
+                                  ),
                                 ),
                               ],
                             ),
-                            child: const Icon(
-                              Icons.business_center,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ShaderMask(
-                                shaderCallback: (bounds) => const LinearGradient(
-                                  colors: [Color(0xFF60A5FA), Color(0xFFA78BFA)],
-                                ).createShader(bounds),
-                                child: const Text(
-                                  'carrzz Partner',
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                    letterSpacing: 1,
-                                  ),
-                                ),
-                              ),
-                              const Text(
-                                'Grow Your Business',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF94A3B8),
-                                  fontWeight: FontWeight.w300,
-                                  letterSpacing: 2,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 32),
 
-                      // Main Card
+                      // ========== 3D MAIN CARD ==========
                       Container(
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              const Color(0xFF1E293B).withOpacity(0.8),
-                              const Color(0xFF0F172A).withOpacity(0.8),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: const Color(0xFF3B82F6).withOpacity(0.2),
-                            width: 1,
-                          ),
+                          color: const Color(0xFFC7B3A1), // Deep solid 3D extrusion base lip
+                          borderRadius: BorderRadius.circular(24),
                           boxShadow: [
+                            // Deep contact shadow under depth lip
+                            const BoxShadow(
+                              color: Color(0x332B1B12),
+                              blurRadius: 8,
+                              offset: Offset(0, 7),
+                            ),
+                            // Wide ambient 3D elevation shadow
                             BoxShadow(
-                              color: const Color(0xFF3B82F6).withOpacity(0.1),
-                              blurRadius: 20,
-                              offset: const Offset(0, 4),
+                              color: Colors.black.withOpacity(0.10),
+                              blurRadius: 24,
+                              offset: const Offset(0, 14),
                             ),
                           ],
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(24.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        padding: const EdgeInsets.only(bottom: 7.0), // 3D depth lip extrusion
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Color(0xFFFFFFFF), // Crisp top light reflection
+                                Color(0xFFFAF7F4), // Main face body
+                                Color(0xFFF3ECE4), // Subtle bottom ambient shade
+                              ],
+                              stops: [0.0, 0.40, 1.0],
+                            ),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: const Color(0xFFE2D3C4),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Stack(
                             children: [
-                              // Tab Bar
-                              Container(
-                                height: 52,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF0F172A),
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(
-                                    color: const Color(0xFF334155),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: TabBar(
-                                  controller: _tabController,
-                                  indicator: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
+                              // Specular highlight line along top rim
+                              Positioned(
+                                top: 0,
+                                left: 24,
+                                right: 24,
+                                height: 1.5,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Colors.white.withOpacity(0.0),
+                                        Colors.white.withOpacity(0.9),
+                                        Colors.white.withOpacity(0.0),
+                                      ],
                                     ),
-                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                  indicatorSize: TabBarIndicatorSize.tab,
-                                  labelColor: Colors.white,
-                                  unselectedLabelColor: const Color(0xFF94A3B8),
-                                  labelStyle: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  unselectedLabelStyle: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  dividerColor: Colors.transparent,
-                                  tabs: const [
-                                    Tab(text: 'Sign In'),
-                                    Tab(text: 'Sign Up'),
-                                  ],
                                 ),
                               ),
-                              const SizedBox(height: 24),
-
-                              // Tab Views
-                              SizedBox(
-                                height: _tabController.index == 0 ? 500 : 750,
-                                child: TabBarView(
-                                  controller: _tabController,
+                              Padding(
+                                padding: const EdgeInsets.all(24.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _buildLoginTab(),
-                                    _buildSignupTab(),
+                                    // ========== 3D TAB BAR ==========
+                                    Container(
+                                      height: 52,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFEDE4DC),
+                                        borderRadius: BorderRadius.circular(14),
+                                        border: Border.all(
+                                          color: const Color(0xFFDFD1C4),
+                                          width: 1,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.04),
+                                            blurRadius: 3,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: TabBar(
+                                        controller: _tabController,
+                                        indicator: const _ThreeDTabIndicator(),
+                                        indicatorSize: TabBarIndicatorSize.tab,
+                                        labelColor: Colors.white,
+                                        unselectedLabelColor: const Color(0xFF7D6C62),
+                                        labelStyle: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w700,
+                                          shadows: [
+                                            Shadow(
+                                              color: Color(0x664A1400),
+                                              offset: Offset(0, 1),
+                                              blurRadius: 2,
+                                            ),
+                                          ],
+                                        ),
+                                        unselectedLabelStyle: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        dividerColor: Colors.transparent,
+                                        tabs: const [
+                                          Tab(text: 'Sign In'),
+                                          Tab(text: 'Sign Up'),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 24),
+
+                                    // Tab Views
+                                    SizedBox(
+                                      height: _tabController.index == 0 ? 500 : 750,
+                                      child: TabBarView(
+                                        controller: _tabController,
+                                        children: [
+                                          _buildLoginTab(),
+                                          _buildSignupTab(),
+                                        ],
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -1076,13 +1111,13 @@ class _PartnerAuthScreenState extends State<PartnerAuthScreen>
                           const Text(
                             'Need help? ',
                             style: TextStyle(
-                              color: Color(0xFF64748B),
+                              color: Color(0xFF7D6C62),
                               fontSize: 14,
                             ),
                           ),
                           GestureDetector(
                             onTap: () {
-                              _showSnackBar('Partner Support: partners@carrzz.com', const Color(0xFF3B82F6));
+                              _showSnackBar('Partner Support: partners@carrzz.com', const Color(0xFFFF5A1F));
                             },
                             child: Container(
                               padding: const EdgeInsets.symmetric(
@@ -1090,9 +1125,7 @@ class _PartnerAuthScreenState extends State<PartnerAuthScreen>
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                                ),
+                                color: const Color(0xFFFF5A1F),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: const Text(
@@ -1138,7 +1171,7 @@ class _PartnerAuthScreenState extends State<PartnerAuthScreen>
           suffixIcon: IconButton(
             icon: Icon(
               _isLoginPasswordVisible ? Icons.visibility : Icons.visibility_off,
-              color: const Color(0xFF64748B),
+              color: const Color(0xFF7D6C62),
             ),
             onPressed: () {
               setState(() {
@@ -1160,17 +1193,17 @@ class _PartnerAuthScreenState extends State<PartnerAuthScreen>
                       _rememberMe = value ?? false;
                     });
                   },
-                  activeColor: const Color(0xFF3B82F6),
+                  activeColor: const Color(0xFFFF5A1F),
                   checkColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  side: const BorderSide(color: Color(0xFF334155)),
+                  side: const BorderSide(color: Color(0xFFBDA999)),
                 ),
                 const Text(
                   'Remember me',
                   style: TextStyle(
-                    color: Color(0xFF94A3B8),
+                    color: Color(0xFF7D6C62),
                     fontSize: 14,
                   ),
                 ),
@@ -1193,7 +1226,7 @@ class _PartnerAuthScreenState extends State<PartnerAuthScreen>
               child: const Text(
                 'Forgot Password?',
                 style: TextStyle(
-                  color: Color(0xFF60A5FA),
+                  color: Color(0xFFFF5A1F),
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
@@ -1216,7 +1249,7 @@ class _PartnerAuthScreenState extends State<PartnerAuthScreen>
               children: [
                 Expanded(
                   child: Divider(
-                    color: Color(0xFF334155),
+                    color: Color(0xFFE5D7C9),
                     thickness: 1,
                   ),
                 ),
@@ -1224,12 +1257,12 @@ class _PartnerAuthScreenState extends State<PartnerAuthScreen>
                   padding: EdgeInsets.symmetric(horizontal: 16),
                   child: Text(
                     'Or continue with',
-                    style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                    style: TextStyle(color: Color(0xFF7D6C62), fontSize: 13),
                   ),
                 ),
                 Expanded(
                   child: Divider(
-                    color: Color(0xFF334155),
+                    color: Color(0xFFE5D7C9),
                     thickness: 1,
                   ),
                 ),
@@ -1245,12 +1278,12 @@ class _PartnerAuthScreenState extends State<PartnerAuthScreen>
                   height: 24,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3B82F6)),
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF5A1F)),
                   ),
                 )
                     : _buildModernSocialButton(
                   icon: Icons.g_mobiledata,
-                  color: Colors.red,
+                  color: const Color(0xFFFF5A1F),
                   onTap: _handlePartnerGoogleSignIn,
                 ),
               ],
@@ -1263,23 +1296,21 @@ class _PartnerAuthScreenState extends State<PartnerAuthScreen>
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [const Color(0xFF3B82F6).withOpacity(0.1), const Color(0xFF8B5CF6).withOpacity(0.1)],
-            ),
+            color: const Color(0xFFF7E9DF),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: const Color(0xFF3B82F6).withOpacity(0.2),
+              color: const Color(0xFFE5D7C9),
             ),
           ),
           child: const Row(
             children: [
-              Icon(Icons.info_outline, color: Color(0xFF60A5FA), size: 16),
+              Icon(Icons.info_outline, color: Color(0xFFFF5A1F), size: 16),
               SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Access your partner dashboard to manage your business and track orders.',
+                  'Application is currently under construction.🚧 \n Please use Google Sign-In to access the application. ',
                   style: TextStyle(
-                    color: Color(0xFF94A3B8),
+                    color: Color(0xFF7D6C62),
                     fontSize: 11,
                     height: 1.3,
                   ),
@@ -1321,7 +1352,7 @@ class _PartnerAuthScreenState extends State<PartnerAuthScreen>
               height: 20,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3B82F6)),
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF5A1F)),
               ),
             )
                 : TextButton(
@@ -1334,7 +1365,7 @@ class _PartnerAuthScreenState extends State<PartnerAuthScreen>
               child: const Text(
                 'Send OTP',
                 style: TextStyle(
-                  color: Color(0xFF60A5FA),
+                  color: Color(0xFFFF5A1F),
                   fontWeight: FontWeight.w600,
                   fontSize: 12,
                 ),
@@ -1358,7 +1389,7 @@ class _PartnerAuthScreenState extends State<PartnerAuthScreen>
                 height: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3B82F6)),
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF5A1F)),
                 ),
               )
                   : TextButton(
@@ -1371,7 +1402,7 @@ class _PartnerAuthScreenState extends State<PartnerAuthScreen>
                 child: const Text(
                   'Verify',
                   style: TextStyle(
-                    color: Color(0xFF60A5FA),
+                    color: Color(0xFFFF5A1F),
                     fontWeight: FontWeight.w600,
                     fontSize: 12,
                   ),
@@ -1393,28 +1424,28 @@ class _PartnerAuthScreenState extends State<PartnerAuthScreen>
         // Business Type Dropdown
         Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF1E293B),
+            color: const Color(0xFFF5EFE9),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: const Color(0xFF334155),
+              color: const Color(0xFFE5D7C9),
               width: 1,
             ),
           ),
           child: DropdownButtonFormField<String>(
             value: _selectedBusinessType,
-            dropdownColor: const Color(0xFF1E293B),
-            style: const TextStyle(color: Colors.white),
+            dropdownColor: const Color(0xFFFAF7F4),
+            style: const TextStyle(color: Color(0xFF2B1B12)),
             decoration: const InputDecoration(
               labelText: 'Business Type',
-              labelStyle: TextStyle(color: Color(0xFF94A3B8)),
-              prefixIcon: Icon(Icons.category_outlined, color: Color(0xFF64748B), size: 20),
+              labelStyle: TextStyle(color: Color(0xFF7D6C62)),
+              prefixIcon: Icon(Icons.category_outlined, color: Color(0xFFFF5A1F), size: 20),
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
             items: _businessTypes.map((type) {
               return DropdownMenuItem(
                 value: type,
-                child: Text(type, style: const TextStyle(color: Colors.white)),
+                child: Text(type, style: const TextStyle(color: Color(0xFF2B1B12))),
               );
             }).toList(),
             onChanged: (value) {
@@ -1422,7 +1453,7 @@ class _PartnerAuthScreenState extends State<PartnerAuthScreen>
                 _selectedBusinessType = value;
               });
             },
-            icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF64748B)),
+            icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF7D6C62)),
           ),
         ),
         const SizedBox(height: 16),
@@ -1451,7 +1482,7 @@ class _PartnerAuthScreenState extends State<PartnerAuthScreen>
           suffixIcon: IconButton(
             icon: Icon(
               _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-              color: const Color(0xFF64748B),
+              color: const Color(0xFF7D6C62),
             ),
             onPressed: () {
               setState(() {
@@ -1470,7 +1501,7 @@ class _PartnerAuthScreenState extends State<PartnerAuthScreen>
           suffixIcon: IconButton(
             icon: Icon(
               _isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off,
-              color: const Color(0xFF64748B),
+              color: const Color(0xFF7D6C62),
             ),
             onPressed: () {
               setState(() {
@@ -1490,34 +1521,34 @@ class _PartnerAuthScreenState extends State<PartnerAuthScreen>
                   _agreeToTerms = value ?? false;
                 });
               },
-              activeColor: const Color(0xFF3B82F6),
+              activeColor: const Color(0xFFFF5A1F),
               checkColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(4),
               ),
-              side: const BorderSide(color: Color(0xFF334155)),
+              side: const BorderSide(color: Color(0xFFBDA999)),
             ),
             Expanded(
               child: RichText(
-                text: TextSpan(
-                  style: const TextStyle(
-                    color: Color(0xFF94A3B8),
+                text: const TextSpan(
+                  style: TextStyle(
+                    color: Color(0xFF7D6C62),
                     fontSize: 13,
                   ),
                   children: [
-                    const TextSpan(text: 'I agree to the '),
+                    TextSpan(text: 'I agree to the '),
                     TextSpan(
                       text: 'Partner Terms',
-                      style: const TextStyle(
-                        color: Color(0xFF60A5FA),
+                      style: TextStyle(
+                        color: Color(0xFFFF5A1F),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const TextSpan(text: ' and '),
+                    TextSpan(text: ' and '),
                     TextSpan(
                       text: 'Business Agreement',
-                      style: const TextStyle(
-                        color: Color(0xFF60A5FA),
+                      style: TextStyle(
+                        color: Color(0xFFFF5A1F),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -1539,23 +1570,21 @@ class _PartnerAuthScreenState extends State<PartnerAuthScreen>
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [const Color(0xFFF59E0B).withOpacity(0.1), const Color(0xFFF59E0B).withOpacity(0.05)],
-            ),
+            color: const Color(0xFFF7E9DF),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: const Color(0xFFF59E0B).withOpacity(0.2),
+              color: const Color(0xFFE5D7C9),
             ),
           ),
           child: const Row(
             children: [
-              Icon(Icons.star, color: Color(0xFFF59E0B), size: 16),
+              Icon(Icons.star, color: Color(0xFFFF5A1F), size: 16),
               SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'Join as a partner to access exclusive benefits, business tools, and a growing customer base.',
                   style: TextStyle(
-                    color: Color(0xFFFCD34D),
+                    color: Color(0xFF2B1B12),
                     fontSize: 11,
                     height: 1.3,
                   ),
@@ -1582,10 +1611,10 @@ class _PartnerAuthScreenState extends State<PartnerAuthScreen>
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: const Color(0xFFF5EFE9),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: const Color(0xFF334155),
+          color: const Color(0xFFE5D7C9),
           width: 1,
         ),
       ),
@@ -1596,11 +1625,11 @@ class _PartnerAuthScreenState extends State<PartnerAuthScreen>
         readOnly: readOnly,
         onTap: onTap,
         maxLines: maxLines,
-        style: const TextStyle(color: Colors.white),
+        style: const TextStyle(color: Color(0xFF2B1B12)),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
-          prefixIcon: Icon(icon, color: const Color(0xFF64748B), size: 20),
+          labelStyle: const TextStyle(color: Color(0xFF7D6C62)),
+          prefixIcon: Icon(icon, color: const Color(0xFFFF5A1F), size: 20),
           suffixIcon: suffixIcon,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -1609,51 +1638,78 @@ class _PartnerAuthScreenState extends State<PartnerAuthScreen>
     );
   }
 
+  // ========== 3D BUTTON ==========
   Widget _buildModernButton({
     required String text,
     required bool isLoading,
     required VoidCallback onTap,
   }) {
+    const Color baseColor = Color(0xFFFF5A1F);
+    const Color depthLipColor = Color(0xFFCC3F0C);
+    const Color highlightColor = Color(0xFFFF7A47);
+    const Color lowerFaceColor = Color(0xFFE64A12);
+
     return Container(
       width: double.infinity,
+      padding: const EdgeInsets.only(bottom: 4.5),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-        ),
-        borderRadius: BorderRadius.circular(12),
+        color: depthLipColor,
+        borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF3B82F6).withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: depthLipColor.withOpacity(0.40),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: isLoading ? null : onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Center(
-              child: isLoading
-                  ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
-                  : Text(
-                text,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 1,
-                ),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [highlightColor, baseColor, lowerFaceColor],
+            stops: [0.0, 0.45, 1.0],
+          ),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.35),
+            width: 1,
+          ),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: isLoading ? null : onTap,
+            borderRadius: BorderRadius.circular(14),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Center(
+                child: isLoading
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : Text(
+                        text,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1,
+                          shadows: [
+                            Shadow(
+                              color: Color(0x554A1400),
+                              offset: Offset(0, 1),
+                              blurRadius: 2,
+                            ),
+                          ],
+                        ),
+                      ),
               ),
             ),
           ),
@@ -1662,29 +1718,53 @@ class _PartnerAuthScreenState extends State<PartnerAuthScreen>
     );
   }
 
+  // ========== 3D SOCIAL BUTTON ==========
   Widget _buildModernSocialButton({
     required IconData icon,
     required Color color,
     required VoidCallback onTap,
   }) {
     return Container(
-      width: 50,
-      height: 50,
+      width: 52,
+      height: 52,
+      padding: const EdgeInsets.only(bottom: 3.5),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFF334155),
-          width: 1,
-        ),
+        color: const Color(0xFFD6C6B8), // 3D depth lip
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0x2E2B1B12),
+            blurRadius: 6,
+            offset: const Offset(0, 3.5),
+          ),
+        ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Center(
-            child: Icon(icon, color: color, size: 30),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFFFFFFFF),
+              Color(0xFFFAF7F4),
+              Color(0xFFF3ECE4),
+            ],
+            stops: [0.0, 0.45, 1.0],
+          ),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: const Color(0xFFE2D3C4),
+            width: 1.2,
+          ),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(14),
+            child: Center(
+              child: Icon(icon, color: color, size: 30),
+            ),
           ),
         ),
       ),
@@ -1709,5 +1789,95 @@ extension Base64Utils on String {
       default:
         return input;
     }
+  }
+}
+
+// ========== 3D ORANGE TAB INDICATOR (SIGN IN / SIGN UP) ==========
+class _ThreeDTabIndicator extends Decoration {
+  final Color baseColor;
+  final Color depthLipColor;
+  final Color highlightColor;
+  final Color lowerFaceColor;
+  final double depth;
+
+  const _ThreeDTabIndicator({
+    this.baseColor = const Color(0xFFFF5A1F),
+    this.depthLipColor = const Color(0xFFCC3F0C),
+    this.highlightColor = const Color(0xFFFF7A47),
+    this.lowerFaceColor = const Color(0xFFE64A12),
+    this.depth = 3.5,
+  });
+
+  @override
+  BoxPainter createBoxPainter([VoidCallback? onChanged]) {
+    return _ThreeDTabIndicatorPainter(this, onChanged);
+  }
+}
+
+class _ThreeDTabIndicatorPainter extends BoxPainter {
+  final _ThreeDTabIndicator decoration;
+
+  _ThreeDTabIndicatorPainter(this.decoration, VoidCallback? onChanged)
+      : super(onChanged);
+
+  @override
+  void paint(Canvas canvas, Offset offset, ImageConfiguration configuration) {
+    final Rect rect = offset & (configuration.size ?? Size.zero);
+    if (rect.isEmpty) return;
+
+    // Inset slightly inside the tab bar container
+    final insets = const EdgeInsets.all(4.0);
+    final targetRect = insets.deflateRect(rect);
+    const radius = Radius.circular(11);
+
+    final double faceHeight = targetRect.height - decoration.depth;
+    final topRRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(
+        targetRect.left,
+        targetRect.top,
+        targetRect.width,
+        faceHeight,
+      ),
+      radius,
+    );
+    final depthRRect = topRRect.shift(Offset(0, decoration.depth));
+
+    // 1. Drop shadow under 3D depth lip
+    final shadowPaint = Paint()
+      ..color = decoration.depthLipColor.withOpacity(0.42)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7);
+    canvas.drawRRect(depthRRect.shift(const Offset(0, 3)), shadowPaint);
+
+    // 2. 3D Depth lip extrusion (solid base volume)
+    for (double dy = decoration.depth; dy >= 1.0; dy -= 0.5) {
+      canvas.drawRRect(
+        topRRect.shift(Offset(0, dy)),
+        Paint()
+          ..color = decoration.depthLipColor
+          ..style = PaintingStyle.fill,
+      );
+    }
+
+    // 3. Top Face Gradient (volumetric 3D lighting reflection)
+    final facePaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          decoration.highlightColor,
+          decoration.baseColor,
+          decoration.lowerFaceColor,
+        ],
+        stops: const [0.0, 0.45, 1.0],
+      ).createShader(topRRect.outerRect)
+      ..style = PaintingStyle.fill;
+    canvas.drawRRect(topRRect, facePaint);
+
+    // 4. Subtle top border highlight
+    final borderPaint = Paint()
+      ..color = Colors.white.withOpacity(0.35)
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+    canvas.drawRRect(topRRect, borderPaint);
   }
 }

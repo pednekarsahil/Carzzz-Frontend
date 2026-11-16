@@ -53,8 +53,19 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
 
     // FIX: Safely extract all values with proper type checking
     _carModel = _car['model']?.toString() ?? '';
-    _carType = _car['type']?.toString() ?? '';
-    _fuelType = _car['fuelType']?.toString() ?? '';
+    final String rawType = _car['type']?.toString() ?? '';
+    const Map<String, String> legacyTypeMap = {
+      'Scooter': 'Car',
+      'Motorcycle': 'Sports Car',
+      'Sports car': 'Super Car',
+    };
+    final String mappedType = legacyTypeMap[rawType] ?? rawType;
+    const List<String> validCarTypes = ['Car', 'Sports Car', 'Super Car', 'Electric'];
+    _carType = validCarTypes.contains(mappedType) ? mappedType : 'Car';
+
+    final String rawFuel = _car['fuelType']?.toString() ?? '';
+    const List<String> validFuelTypes = ['Petrol', 'Electric', 'CNG'];
+    _fuelType = validFuelTypes.contains(rawFuel) ? rawFuel : 'Petrol';
     _dailyRate = _car['dailyRate']?.toString() ?? '0';
     _description = _car['description']?.toString() ?? '';
 
@@ -115,33 +126,27 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
     final bool isRented = _car['status'] == 'rented';
 
     return Scaffold(
+      backgroundColor: const Color(0xFFEDE1D5),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0F172A),
-              Color(0xFF1E293B),
-            ],
-          ),
-        ),
+        width: double.infinity,
+        height: double.infinity,
+        color: const Color(0xFFEDE1D5),
         child: SafeArea(
           child: Column(
             children: [
-              // ========== REDESIGNED HEADER - DARK MODE ==========
+              // ========== REDESIGNED HEADER - LIGHT MODE ==========
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B).withOpacity(0.95),
+                  color: const Color(0xFFFAF7F4),
                   borderRadius: const BorderRadius.only(
                     bottomLeft: Radius.circular(24),
                     bottomRight: Radius.circular(24),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 20,
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 16,
                       offset: const Offset(0, 4),
                     ),
                   ],
@@ -153,14 +158,12 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                          ),
+                          color: const Color(0xFFE6D6C8),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(
                           Icons.arrow_back,
-                          color: Colors.white,
+                          color: Color(0xFF2B1B12),
                           size: 20,
                         ),
                       ),
@@ -171,15 +174,13 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: Color(0xFF2B1B12),
                       ),
                     ),
                     const Spacer(),
                     Container(
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                        ),
+                        color: const Color(0xFFFF5A1F),
                         borderRadius: BorderRadius.circular(10),
                       ),
 
@@ -195,27 +196,21 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // ========== STATUS MANAGEMENT SECTION - DARK MODE ==========
+                        // ========== STATUS MANAGEMENT SECTION - LIGHT MODE ==========
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                Color(0xFF1E293B),
-                                Color(0xFF0F172A),
-                              ],
-                            ),
+                            color: const Color(0xFFFAF7F4),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: Colors.grey[700]!,
-                              width: 1,
+                              color: const Color(0xFFE5D7C9),
+                              width: 1.5,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
-                                blurRadius: 10,
+                                color: Colors.black.withOpacity(0.06),
+                                blurRadius: 16,
+                                offset: const Offset(0, 4),
                               ),
                             ],
                           ),
@@ -227,7 +222,7 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                                  color: Color(0xFF2B1B12),
                                 ),
                               ),
                               const SizedBox(height: 12),
@@ -320,9 +315,10 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                           icon: Icons.category,
                           value: _carType,
                           items: const [
-                            DropdownMenuItem(value: 'Scooter', child: Text('Car')),
-                            DropdownMenuItem(value: 'Motorcycle', child: Text('Sports Car')),
-                            DropdownMenuItem(value: 'Sports car', child: Text('Super Car')),
+                            DropdownMenuItem(value: 'Car', child: Text('Car')),
+                            DropdownMenuItem(value: 'Sports Car', child: Text('Sports Car')),
+                            DropdownMenuItem(value: 'Super Car', child: Text('Super Car')),
+                            DropdownMenuItem(value: 'Electric', child: Text('Electric')),
                           ],
                           onChanged: (value) {
                             setState(() {
@@ -376,7 +372,7 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                            color: Color(0xFF2B1B12),
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -393,16 +389,16 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                                     width: 100,
                                     margin: const EdgeInsets.only(right: 8),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF1E293B),
+                                      color: const Color(0xFFFAF7F4),
                                       borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: Colors.grey[700]!),
+                                      border: Border.all(color: const Color(0xFFE5D7C9)),
                                     ),
                                     child: const Column(
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
-                                        Icon(Icons.add_photo_alternate, size: 40, color: Colors.grey),
+                                        Icon(Icons.add_photo_alternate, size: 40, color: Color(0xFFFF5A1F)),
                                         SizedBox(height: 4),
-                                        Text('Add Image', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                                        Text('Add Image', style: TextStyle(fontSize: 12, color: Color(0xFF7D6C62))),
                                       ],
                                     ),
                                   ),
@@ -477,16 +473,16 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                            color: Color(0xFF2B1B12),
                           ),
                         ),
                         const SizedBox(height: 8),
                         Container(
                           decoration: BoxDecoration(
-                            color: const Color(0xFF1E293B),
+                            color: const Color(0xFFFAF7F4),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: Colors.grey[700]!,
+                              color: const Color(0xFFE5D7C9),
                               width: 1,
                             ),
                           ),
@@ -495,8 +491,8 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                               value: _selectedOffer,
                               isExpanded: true,
                               padding: const EdgeInsets.symmetric(horizontal: 16),
-                              dropdownColor: const Color(0xFF1E293B),
-                              style: const TextStyle(color: Colors.white),
+                              dropdownColor: const Color(0xFFFAF7F4),
+                              style: const TextStyle(color: Color(0xFF2B1B12)),
                               items: _offerOptions.map((offer) {
                                 return DropdownMenuItem(
                                   value: offer,
@@ -508,7 +504,7 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                                   _selectedOffer = value!;
                                 });
                               },
-                              icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF64748B)),
+                              icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF7D6C62)),
                             ),
                           ),
                         ),
@@ -520,7 +516,7 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                            color: Color(0xFF2B1B12),
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -529,7 +525,7 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: Colors.grey[700]!,
+                              color: const Color(0xFFE5D7C9),
                             ),
                           ),
                           child: ClipRRect(
@@ -555,8 +551,8 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                               ),
                               children: [
                                 TileLayer(
-                                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                  userAgentPackageName: 'com.example.carrzz',
+                                  urlTemplate: 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+                                  userAgentPackageName: 'com.carzzz.app',
                                 ),
                                 MarkerLayer(
                                   markers: [
@@ -577,11 +573,11 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Text(
+                        const Text(
                           'Tap on the map to update car location',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey[500],
+                            color: Color(0xFF7D6C62),
                           ),
                         ),
                         const SizedBox(height: 32),
@@ -590,13 +586,11 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                         Container(
                           width: double.infinity,
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                            ),
+                            color: const Color(0xFFFF5A1F),
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF3B82F6).withOpacity(0.3),
+                                color: const Color(0xFFFF5A1F).withOpacity(0.3),
                                 blurRadius: 12,
                                 offset: const Offset(0, 4),
                               ),
@@ -654,16 +648,16 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: Colors.white,
+            color: Color(0xFF2B1B12),
           ),
         ),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF1E293B),
+            color: const Color(0xFFFAF7F4),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: Colors.grey[700]!,
+              color: const Color(0xFFE5D7C9),
               width: 1,
             ),
           ),
@@ -671,11 +665,11 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
             initialValue: initialValue,
             keyboardType: keyboardType,
             maxLines: maxLines,
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: Color(0xFF2B1B12)),
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle: TextStyle(color: Colors.grey[500]),
-              prefixIcon: Icon(icon, color: const Color(0xFF64748B), size: 20),
+              hintStyle: const TextStyle(color: Color(0xFF9A8B82)),
+              prefixIcon: Icon(icon, color: const Color(0xFFFF5A1F), size: 20),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
@@ -703,32 +697,32 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: Colors.white,
+            color: Color(0xFF2B1B12),
           ),
         ),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF1E293B),
+            color: const Color(0xFFFAF7F4),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: Colors.grey[700]!,
+              color: const Color(0xFFE5D7C9),
               width: 1,
             ),
           ),
           child: DropdownButtonFormField<String>(
             value: value.isNotEmpty ? value : null,
-            dropdownColor: const Color(0xFF1E293B),
-            style: const TextStyle(color: Colors.white),
+            dropdownColor: const Color(0xFFFAF7F4),
+            style: const TextStyle(color: Color(0xFF2B1B12)),
             decoration: InputDecoration(
-              prefixIcon: Icon(icon, color: const Color(0xFF64748B), size: 20),
+              prefixIcon: Icon(icon, color: const Color(0xFFFF5A1F), size: 20),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
             items: items,
             onChanged: onChanged,
             validator: validator,
-            icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF64748B)),
+            icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF7D6C62)),
           ),
         ),
       ],
@@ -748,10 +742,10 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.2) : const Color(0xFF1E293B),
+          color: isSelected ? color.withOpacity(0.12) : const Color(0xFFF5EFE9),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? color : Colors.grey[700]!,
+            color: isSelected ? color : const Color(0xFFE5D7C9),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -759,7 +753,7 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
           children: [
             Icon(
               icon,
-              color: isDisabled ? Colors.grey[600] : (isSelected ? color : Colors.grey[500]),
+              color: isDisabled ? Colors.grey[400] : (isSelected ? color : const Color(0xFF7D6C62)),
               size: 24,
             ),
             const SizedBox(height: 4),
@@ -768,7 +762,7 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isDisabled ? Colors.grey[600] : (isSelected ? color : Colors.grey[400]),
+                color: isDisabled ? Colors.grey[400] : (isSelected ? color : const Color(0xFF7D6C62)),
               ),
             ),
           ],

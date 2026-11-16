@@ -66,13 +66,13 @@ class _PartnerAddNewcarState extends State<PartnerAddNewcar> {
 
   // CHANGE THIS MANUALLY:
   // Set to false for emulator, true for physical device
-  static const bool _usePhysicalDevice = true;
+  static const bool _usePhysicalDevice = false;
 
   String get _baseUrl {
     if (_usePhysicalDevice) {
       return 'http://10.0.2.2:3000';
     } else {
-      return 'https://bikerzzz-backend.onrender.com';
+      return 'https://carzzz-frontend.onrender.com';
     }
   }
 
@@ -278,21 +278,15 @@ class _PartnerAddNewcarState extends State<PartnerAddNewcar> {
     );
   }
 
-  // ========== REDESIGNED UI - DARK MODE ==========
+  // ========== REDESIGNED UI - LIGHT MODE ==========
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFEDE1D5),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0F172A),
-              Color(0xFF1E293B),
-            ],
-          ),
-        ),
+        width: double.infinity,
+        height: double.infinity,
+        color: const Color(0xFFEDE1D5),
         child: SafeArea(
           child: Column(
             children: [
@@ -300,15 +294,15 @@ class _PartnerAddNewcarState extends State<PartnerAddNewcar> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B).withOpacity(0.95),
+                  color: const Color(0xFFFAF7F4),
                   borderRadius: const BorderRadius.only(
                     bottomLeft: Radius.circular(24),
                     bottomRight: Radius.circular(24),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 20,
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 16,
                       offset: const Offset(0, 4),
                     ),
                   ],
@@ -320,14 +314,12 @@ class _PartnerAddNewcarState extends State<PartnerAddNewcar> {
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                          ),
+                          color: const Color(0xFFE6D6C8),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(
                           Icons.arrow_back,
-                          color: Colors.white,
+                          color: Color(0xFF2B1B12),
                           size: 20,
                         ),
                       ),
@@ -338,7 +330,7 @@ class _PartnerAddNewcarState extends State<PartnerAddNewcar> {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: Color(0xFF2B1B12),
                       ),
                     ),
                     // REMOVED: const Spacer()
@@ -455,7 +447,7 @@ class _PartnerAddNewcarState extends State<PartnerAddNewcar> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                            color: Color(0xFF2B1B12),
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -472,16 +464,16 @@ class _PartnerAddNewcarState extends State<PartnerAddNewcar> {
                                     width: 100,
                                     margin: const EdgeInsets.only(right: 8),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF1E293B),
+                                      color: const Color(0xFFFAF7F4),
                                       borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: Colors.grey[700]!),
+                                      border: Border.all(color: const Color(0xFFE5D7C9)),
                                     ),
                                     child: const Column(
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
-                                        Icon(Icons.add_photo_alternate, size: 40, color: Colors.grey),
+                                        Icon(Icons.add_photo_alternate, size: 40, color: Color(0xFFFF5A1F)),
                                         SizedBox(height: 4),
-                                        Text('Add Image', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                                        Text('Add Image', style: TextStyle(fontSize: 12, color: Color(0xFF7D6C62))),
                                       ],
                                     ),
                                   ),
@@ -552,16 +544,16 @@ class _PartnerAddNewcarState extends State<PartnerAddNewcar> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                            color: Color(0xFF2B1B12),
                           ),
                         ),
                         const SizedBox(height: 8),
                         Container(
                           decoration: BoxDecoration(
-                            color: const Color(0xFF1E293B),
+                            color: const Color(0xFFFAF7F4),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: Colors.grey[700]!,
+                              color: const Color(0xFFE5D7C9),
                               width: 1,
                             ),
                           ),
@@ -570,8 +562,8 @@ class _PartnerAddNewcarState extends State<PartnerAddNewcar> {
                               value: _selectedOffer,
                               isExpanded: true,
                               padding: const EdgeInsets.symmetric(horizontal: 16),
-                              dropdownColor: const Color(0xFF1E293B),
-                              style: const TextStyle(color: Colors.white),
+                              dropdownColor: const Color(0xFFFAF7F4),
+                              style: const TextStyle(color: Color(0xFF2B1B12)),
                               items: _offerOptions.map((offer) {
                                 return DropdownMenuItem(
                                   value: offer,
@@ -583,7 +575,7 @@ class _PartnerAddNewcarState extends State<PartnerAddNewcar> {
                                   _selectedOffer = value!;
                                 });
                               },
-                              icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF64748B)),
+                              icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF7D6C62)),
                             ),
                           ),
                         ),
@@ -595,7 +587,7 @@ class _PartnerAddNewcarState extends State<PartnerAddNewcar> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                            color: Color(0xFF2B1B12),
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -604,13 +596,11 @@ class _PartnerAddNewcarState extends State<PartnerAddNewcar> {
                         Container(
                           width: double.infinity,
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                            ),
+                            color: const Color(0xFFFF5A1F),
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF3B82F6).withOpacity(0.3),
+                                color: const Color(0xFFFF5A1F).withOpacity(0.3),
                                 blurRadius: 10,
                               ),
                             ],
@@ -645,12 +635,12 @@ class _PartnerAddNewcarState extends State<PartnerAddNewcar> {
                         const SizedBox(height: 12),
 
                         // Or tap on map text
-                        Center(
+                        const Center(
                           child: Text(
                             'OR',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[500],
+                              color: Color(0xFF7D6C62),
                             ),
                           ),
                         ),
@@ -662,7 +652,7 @@ class _PartnerAddNewcarState extends State<PartnerAddNewcar> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: Colors.grey[700]!,
+                              color: const Color(0xFFE5D7C9),
                               width: 1,
                             ),
                           ),
@@ -685,8 +675,8 @@ class _PartnerAddNewcarState extends State<PartnerAddNewcar> {
                               ),
                               children: [
                                 TileLayer(
-                                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                  userAgentPackageName: 'com.example.carrzz',
+                                  urlTemplate: 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+                                  userAgentPackageName: 'com.carzzz.app',
                                 ),
                                 if (_selectedLocation != null)
                                   MarkerLayer(
@@ -714,7 +704,7 @@ class _PartnerAddNewcarState extends State<PartnerAddNewcar> {
                               : 'Tap on the map to set car location',
                           style: TextStyle(
                             fontSize: 12,
-                            color: _selectedLocation != null ? const Color(0xFF10B981) : Colors.grey[500],
+                            color: _selectedLocation != null ? const Color(0xFFFF5A1F) : const Color(0xFF7D6C62),
                           ),
                         ),
                         if (_selectedLocation == null)
@@ -731,13 +721,11 @@ class _PartnerAddNewcarState extends State<PartnerAddNewcar> {
                         Container(
                           width: double.infinity,
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                            ),
+                            color: const Color(0xFFFF5A1F),
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF3B82F6).withOpacity(0.3),
+                                color: const Color(0xFFFF5A1F).withOpacity(0.3),
                                 blurRadius: 12,
                                 offset: const Offset(0, 4),
                               ),
@@ -802,16 +790,16 @@ class _PartnerAddNewcarState extends State<PartnerAddNewcar> {
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: Colors.white,
+            color: Color(0xFF2B1B12),
           ),
         ),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF1E293B),
+            color: const Color(0xFFFAF7F4),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: Colors.grey[700]!,
+              color: const Color(0xFFE5D7C9),
               width: 1,
             ),
           ),
@@ -819,11 +807,11 @@ class _PartnerAddNewcarState extends State<PartnerAddNewcar> {
             controller: controller,
             keyboardType: keyboardType,
             maxLines: maxLines,
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: Color(0xFF2B1B12)),
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle: TextStyle(color: Colors.grey[500]),
-              prefixIcon: Icon(icon, color: const Color(0xFF64748B), size: 20),
+              hintStyle: const TextStyle(color: Color(0xFF9A8B82)),
+              prefixIcon: Icon(icon, color: const Color(0xFFFF5A1F), size: 20),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
@@ -850,32 +838,32 @@ class _PartnerAddNewcarState extends State<PartnerAddNewcar> {
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: Colors.white,
+            color: Color(0xFF2B1B12),
           ),
         ),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF1E293B),
+            color: const Color(0xFFFAF7F4),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: Colors.grey[700]!,
+              color: const Color(0xFFE5D7C9),
               width: 1,
             ),
           ),
           child: DropdownButtonFormField<String>(
             value: value.isNotEmpty ? value : null,
-            dropdownColor: const Color(0xFF1E293B),
-            style: const TextStyle(color: Colors.white),
+            dropdownColor: const Color(0xFFFAF7F4),
+            style: const TextStyle(color: Color(0xFF2B1B12)),
             decoration: InputDecoration(
-              prefixIcon: Icon(icon, color: const Color(0xFF64748B), size: 20),
+              prefixIcon: Icon(icon, color: const Color(0xFFFF5A1F), size: 20),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
             items: items,
             onChanged: onChanged,
             validator: validator,
-            icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF64748B)),
+            icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF7D6C62)),
           ),
         ),
       ],

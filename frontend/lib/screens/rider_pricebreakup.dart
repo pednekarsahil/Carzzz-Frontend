@@ -59,13 +59,13 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
   late Razorpay _razorpay;
   static const String _razorpayKey = 'rzp_test_ScRentKEtlnMIH';
 
-  static const bool _usePhysicalDevice = true;
+  static const bool _usePhysicalDevice = false;
 
   String get _baseUrl {
     if (_usePhysicalDevice) {
       return 'http://10.0.2.2:3000';
     } else {
-      return 'https://bikerzzz-backend.onrender.com';
+      return 'https://carzzz-frontend.onrender.com';
     }
   }
 
@@ -305,10 +305,10 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: const Color(0xFF3B82F6),
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF3B82F6),
               onPrimary: Colors.white,
-              surface: widget.isDarkMode ? const Color(0xFF1F2937) : Colors.white,
+              surface: Colors.white,
             ),
           ),
           child: child!,
@@ -361,10 +361,10 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: const Color(0xFF3B82F6),
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF3B82F6),
               onPrimary: Colors.white,
-              surface: widget.isDarkMode ? const Color(0xFF1F2937) : Colors.white,
+              surface: Colors.white,
             ),
           ),
           child: child!,
@@ -450,7 +450,7 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
           carName: widget.carData['name'],
           totalAmount: totalPrice,
           rentalDuration: rentalDuration,
-          isDarkMode: widget.isDarkMode,
+          isDarkMode: false,
         ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           const begin = Offset(0.0, 1.0);
@@ -497,18 +497,18 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: widget.isDarkMode ? const Color(0xFF1F2937) : Colors.white,
+            color: Colors.white,
             borderRadius: BorderRadius.circular(20),
           ),
-          child: Column(
+          child: const Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const CircularProgressIndicator(color: Color(0xFF3B82F6)),
-              const SizedBox(height: 16),
+              CircularProgressIndicator(color: Color(0xFF3B82F6)),
+              SizedBox(height: 16),
               Text(
                 'Confirming your booking...',
                 style: TextStyle(
-                  color: widget.isDarkMode ? Colors.white : const Color(0xFF1F2937),
+                  color: Color(0xFF1F2937),
                 ),
               ),
             ],
@@ -632,32 +632,32 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
   }
 
   void _showErrorDialog(String message) {
-    final bool isDark = widget.isDarkMode;
-
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
-        title: Text(
+        backgroundColor: const Color(0xFFFAF7F4),
+        title: const Text(
           'Booking Failed',
           style: TextStyle(
-            color: isDark ? Colors.white : const Color(0xFF1F2937),
+            color: Color(0xFF2B1B12),
+            fontWeight: FontWeight.bold,
           ),
         ),
         content: Text(
           message,
-          style: TextStyle(
-            color: isDark ? Colors.grey[400] : Colors.grey[600],
+          style: const TextStyle(
+            color: Color(0xFF7D6C62),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
+            child: const Text(
               'OK',
               style: TextStyle(
-                color: isDark ? Colors.white : const Color(0xFF3B82F6),
+                color: Color(0xFFFF5A1F),
+                fontWeight: FontWeight.bold,
               ),
             ),
           ),
@@ -698,7 +698,7 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
         'name': widget.userData['fullname'] ?? 'Rider',
       },
       'theme': {
-        'color': '#3B82F6',
+        'color': '#FF5A1F',
       },
     };
 
@@ -727,28 +727,25 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark = widget.isDarkMode;
+    const bool isDark = false;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF111827) : Colors.grey[50],
+      backgroundColor: const Color(0xFFEDE1D5),
       appBar: AppBar(
-        title: const Text('Price Breakup'),
-        backgroundColor: const Color(0xFF3B82F6),
-        foregroundColor: Colors.white,
+        title: const Text('Price Breakup', style: TextStyle(color: Color(0xFF2B1B12), fontWeight: FontWeight.bold)),
+        backgroundColor: const Color(0xFFFAF7F4),
+        foregroundColor: const Color(0xFF2B1B12),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF2B1B12)),
           onPressed: () => Navigator.pop(context),
         ),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-            ),
-          ),
-        ),
       ),
-      body: Column(
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        color: const Color(0xFFEDE1D5),
+        child: Column(
         children: [
           // Main scrollable content
           Expanded(
@@ -761,7 +758,7 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1F2937) : Colors.white,
+                      color: const Color(0xFFFAF7F4),
                       borderRadius: const BorderRadius.only(
                         bottomLeft: Radius.circular(24),
                         bottomRight: Radius.circular(24),
@@ -780,12 +777,12 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                           width: 60,
                           height: 60,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF3B82F6).withOpacity(0.1),
+                            color: const Color(0xFFF7E9DF),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Icon(
                             Icons.directions_car,
-                            color: Color(0xFF3B82F6),
+                            color: Color(0xFFFF5A1F),
                             size: 30,
                           ),
                         ),
@@ -796,41 +793,41 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                             children: [
                               Text(
                                 widget.carData['name'],
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white : const Color(0xFF1F2937),
+                                  color: Color(0xFF2B1B12),
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 '${widget.carData['type']} • ${widget.carData['distance']} away',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 14,
-                                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                  color: Color(0xFF7D6C62),
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Row(
                                 children: [
-                                  const Icon(Icons.star, size: 14, color: Color(0xFFF59E0B)),
+                                  const Icon(Icons.star, size: 14, color: Color(0xFFFF5A1F)),
                                   const SizedBox(width: 4),
                                   Text(
                                     widget.carData['rating'].toString(),
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
-                                      color: isDark ? Colors.white : Colors.black87,
+                                      color: Color(0xFF2B1B12),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  const Icon(Icons.access_time, size: 12, color: Colors.grey),
+                                  const Icon(Icons.access_time, size: 12, color: Color(0xFF7D6C62)),
                                   const SizedBox(width: 4),
-                                  Text(
+                                  const Text(
                                     'Flexible Rental',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                      color: Color(0xFF7D6C62),
                                     ),
                                   ),
                                 ],
@@ -850,19 +847,19 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        const Text(
                           'Select Rental Duration',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : const Color(0xFF1F2937),
+                            color: Color(0xFF2B1B12),
                           ),
                         ),
                         const SizedBox(height: 12),
 
                         Container(
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF1F2937) : Colors.white,
+                            color: const Color(0xFFFAF7F4),
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
@@ -917,18 +914,18 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                                 Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: isDark ? const Color(0xFF111827) : Colors.grey[50],
+                                    color: const Color(0xFFF5EFE9),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(
+                                      const Text(
                                         'Select Hours (1-8 hours)',
                                         style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w500,
-                                          color: isDark ? Colors.grey[300] : Colors.grey[700],
+                                          color: Color(0xFF2B1B12),
                                         ),
                                       ),
                                       const SizedBox(height: 12),
@@ -936,7 +933,7 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                                         children: [
                                           IconButton(
                                             icon: const Icon(Icons.remove_circle_outline),
-                                            color: const Color(0xFF3B82F6),
+                                            color: const Color(0xFFFF5A1F),
                                             onPressed: selectedHours > 1 ? () {
                                               setState(() {
                                                 selectedHours--;
@@ -949,16 +946,16 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                                             alignment: Alignment.center,
                                             child: Text(
                                               '$selectedHours hr',
-                                              style: TextStyle(
+                                              style: const TextStyle(
                                                 fontSize: 18,
                                                 fontWeight: FontWeight.bold,
-                                                color: isDark ? Colors.white : Colors.black87,
+                                                color: Color(0xFF2B1B12),
                                               ),
                                             ),
                                           ),
                                           IconButton(
                                             icon: const Icon(Icons.add_circle_outline),
-                                            color: const Color(0xFF3B82F6),
+                                            color: const Color(0xFFFF5A1F),
                                             onPressed: selectedHours < 8 ? () {
                                               setState(() {
                                                 selectedHours++;
@@ -973,7 +970,7 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                                               textAlign: TextAlign.right,
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.w600,
-                                                color: Color(0xFF3B82F6),
+                                                color: Color(0xFFFF5A1F),
                                               ),
                                             ),
                                           ),
@@ -982,9 +979,9 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                                       const SizedBox(height: 8),
                                       Text(
                                         'Note: Rental starts immediately for ${selectedHours} hour(s)',
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           fontSize: 11,
-                                          color: isDark ? Colors.grey[500] : Colors.grey[600],
+                                          color: Color(0xFF7D6C62),
                                         ),
                                       ),
                                     ],
@@ -996,19 +993,19 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                                 Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: isDark ? const Color(0xFF111827) : Colors.grey[50],
+                                    color: const Color(0xFFF5EFE9),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Row(
                                     children: [
-                                      const Icon(Icons.info_outline, color: Color(0xFF3B82F6), size: 20),
+                                      const Icon(Icons.info_outline, color: Color(0xFFFF5A1F), size: 20),
                                       const SizedBox(width: 12),
                                       Expanded(
                                         child: Text(
                                           'Half day rental (12 hours) - ₹${originalHalfDayPrice.toStringAsFixed(0)}\nRental starts immediately',
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                             fontSize: 13,
-                                            color: isDark ? Colors.grey[300] : Colors.grey[700],
+                                            color: Color(0xFF2B1B12),
                                           ),
                                         ),
                                       ),
@@ -1029,29 +1026,29 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                                             child: Container(
                                               padding: const EdgeInsets.all(12),
                                               decoration: BoxDecoration(
-                                                color: isDark ? const Color(0xFF111827) : Colors.grey[50],
+                                                color: const Color(0xFFF5EFE9),
                                                 borderRadius: BorderRadius.circular(12),
                                                 border: Border.all(
-                                                  color: isDark ? Colors.grey[800]! : Colors.grey[200]!,
+                                                  color: const Color(0xFFE5D7C9),
                                                 ),
                                               ),
                                               child: Column(
                                                 crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
-                                                  Text(
+                                                  const Text(
                                                     'Start Date',
                                                     style: TextStyle(
                                                       fontSize: 12,
-                                                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                                      color: Color(0xFF7D6C62),
                                                     ),
                                                   ),
                                                   const SizedBox(height: 4),
                                                   Text(
                                                     _formatDate(selectedStartDate),
-                                                    style: TextStyle(
+                                                    style: const TextStyle(
                                                       fontSize: 14,
                                                       fontWeight: FontWeight.w500,
-                                                      color: isDark ? Colors.white : Colors.black87,
+                                                      color: Color(0xFF2B1B12),
                                                     ),
                                                   ),
                                                 ],
@@ -1066,29 +1063,29 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                                             child: Container(
                                               padding: const EdgeInsets.all(12),
                                               decoration: BoxDecoration(
-                                                color: isDark ? const Color(0xFF111827) : Colors.grey[50],
+                                                color: const Color(0xFFF5EFE9),
                                                 borderRadius: BorderRadius.circular(12),
                                                 border: Border.all(
-                                                  color: isDark ? Colors.grey[800]! : Colors.grey[200]!,
+                                                  color: const Color(0xFFE5D7C9),
                                                 ),
                                               ),
                                               child: Column(
                                                 crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
-                                                  Text(
+                                                  const Text(
                                                     'Start Time',
                                                     style: TextStyle(
                                                       fontSize: 12,
-                                                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                                      color: Color(0xFF7D6C62),
                                                     ),
                                                   ),
                                                   const SizedBox(height: 4),
                                                   Text(
                                                     _formatTime(selectedStartTime),
-                                                    style: TextStyle(
+                                                    style: const TextStyle(
                                                       fontSize: 14,
                                                       fontWeight: FontWeight.w500,
-                                                      color: isDark ? Colors.white : Colors.black87,
+                                                      color: Color(0xFF2B1B12),
                                                     ),
                                                   ),
                                                 ],
@@ -1109,29 +1106,29 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                                             child: Container(
                                               padding: const EdgeInsets.all(12),
                                               decoration: BoxDecoration(
-                                                color: isDark ? const Color(0xFF111827) : Colors.grey[50],
+                                                color: const Color(0xFFF5EFE9),
                                                 borderRadius: BorderRadius.circular(12),
                                                 border: Border.all(
-                                                  color: isDark ? Colors.grey[800]! : Colors.grey[200]!,
+                                                  color: const Color(0xFFE5D7C9),
                                                 ),
                                               ),
                                               child: Column(
                                                 crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
-                                                  Text(
+                                                  const Text(
                                                     'End Date',
                                                     style: TextStyle(
                                                       fontSize: 12,
-                                                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                                      color: Color(0xFF7D6C62),
                                                     ),
                                                   ),
                                                   const SizedBox(height: 4),
                                                   Text(
                                                     _formatDate(selectedEndDate),
-                                                    style: TextStyle(
+                                                    style: const TextStyle(
                                                       fontSize: 14,
                                                       fontWeight: FontWeight.w500,
-                                                      color: isDark ? Colors.white : Colors.black87,
+                                                      color: Color(0xFF2B1B12),
                                                     ),
                                                   ),
                                                 ],
@@ -1146,29 +1143,29 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                                             child: Container(
                                               padding: const EdgeInsets.all(12),
                                               decoration: BoxDecoration(
-                                                color: isDark ? const Color(0xFF111827) : Colors.grey[50],
+                                                color: const Color(0xFFF5EFE9),
                                                 borderRadius: BorderRadius.circular(12),
                                                 border: Border.all(
-                                                  color: isDark ? Colors.grey[800]! : Colors.grey[200]!,
+                                                  color: const Color(0xFFE5D7C9),
                                                 ),
                                               ),
                                               child: Column(
                                                 crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
-                                                  Text(
+                                                  const Text(
                                                     'End Time',
                                                     style: TextStyle(
                                                       fontSize: 12,
-                                                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                                      color: Color(0xFF7D6C62),
                                                     ),
                                                   ),
                                                   const SizedBox(height: 4),
                                                   Text(
                                                     _formatTime(selectedEndTime),
-                                                    style: TextStyle(
+                                                    style: const TextStyle(
                                                       fontSize: 14,
                                                       fontWeight: FontWeight.w500,
-                                                      color: isDark ? Colors.white : Colors.black87,
+                                                      color: Color(0xFF2B1B12),
                                                     ),
                                                   ),
                                                 ],
@@ -1186,12 +1183,12 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                                       Container(
                                         padding: const EdgeInsets.all(12),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFF3B82F6).withOpacity(0.1),
+                                          color: const Color(0xFFF7E9DF),
                                           borderRadius: BorderRadius.circular(12),
                                         ),
                                         child: Row(
                                           children: [
-                                            const Icon(Icons.access_time, color: Color(0xFF3B82F6), size: 20),
+                                            const Icon(Icons.access_time, color: Color(0xFFFF5A1F), size: 20),
                                             const SizedBox(width: 12),
                                             Expanded(
                                               child: Text(
@@ -1199,7 +1196,7 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                                                 style: const TextStyle(
                                                   fontSize: 13,
                                                   fontWeight: FontWeight.w500,
-                                                  color: Color(0xFF3B82F6),
+                                                  color: Color(0xFFFF5A1F),
                                                 ),
                                               ),
                                             ),
@@ -1223,27 +1220,27 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        const Text(
                           'Car Photos',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : const Color(0xFF1F2937),
+                            color: Color(0xFF2B1B12),
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Text(
+                        const Text(
                           'Upload up to 10 photos of the car (Front, Back, Left, Right, License Plate, etc.)',
                           style: TextStyle(
                             fontSize: 12,
-                            color: isDark ? Colors.grey[400] : Colors.grey[600],
+                            color: Color(0xFF7D6C62),
                           ),
                         ),
                         const SizedBox(height: 12),
 
                         Container(
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF1F2937) : Colors.white,
+                            color: const Color(0xFFFAF7F4),
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
@@ -1274,28 +1271,28 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                                       onTap: _pickcarPhoto,
                                       child: Container(
                                         decoration: BoxDecoration(
-                                          color: isDark ? const Color(0xFF111827) : Colors.grey[100],
+                                          color: const Color(0xFFF5EFE9),
                                           borderRadius: BorderRadius.circular(12),
                                           border: Border.all(
-                                            color: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+                                            color: const Color(0xFFE5D7C9),
                                             style: BorderStyle.solid,
                                             width: 2,
                                           ),
                                         ),
-                                        child: Column(
+                                        child: const Column(
                                           mainAxisAlignment: MainAxisAlignment.center,
                                           children: [
                                             Icon(
                                               Icons.add_a_photo,
                                               size: 32,
-                                              color: isDark ? Colors.grey[500] : Colors.grey[600],
+                                              color: Color(0xFFFF5A1F),
                                             ),
-                                            const SizedBox(height: 4),
+                                            SizedBox(height: 4),
                                             Text(
                                               'Add Photo',
                                               style: TextStyle(
                                                 fontSize: 10,
-                                                color: isDark ? Colors.grey[500] : Colors.grey[600],
+                                                color: Color(0xFF7D6C62),
                                               ),
                                             ),
                                           ],
@@ -1344,9 +1341,9 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                                   padding: const EdgeInsets.only(top: 12),
                                   child: Text(
                                     '${carPhotos.length}/10 photos uploaded',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 12,
-                                      color: const Color(0xFF10B981),
+                                      color: Color(0xFF10B981),
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -1365,7 +1362,7 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                     margin: const EdgeInsets.symmetric(horizontal: 20),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1F2937) : Colors.white,
+                        color: const Color(0xFFFAF7F4),
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
@@ -1385,10 +1382,10 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                                 iscarConditionFine = value ?? false;
                               });
                             },
-                            activeColor: const Color(0xFF3B82F6),
+                            activeColor: const Color(0xFFFF5A1F),
                             checkColor: Colors.white,
                           ),
-                          Expanded(
+                          const Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -1397,15 +1394,15 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
-                                    color: isDark ? Colors.white : const Color(0xFF1F2937),
+                                    color: Color(0xFF2B1B12),
                                   ),
                                 ),
-                                const SizedBox(height: 4),
+                                SizedBox(height: 4),
                                 Text(
                                   'I confirm that the car is in good working condition with no damages, all lights, brakes, and indicators are functioning properly.',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                    color: Color(0xFF7D6C62),
                                     height: 1.3,
                                   ),
                                 ),
@@ -1425,19 +1422,19 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        const Text(
                           'Price Breakup',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : const Color(0xFF1F2937),
+                            color: Color(0xFF2B1B12),
                           ),
                         ),
                         const SizedBox(height: 12),
 
                         Container(
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF1F2937) : Colors.white,
+                            color: const Color(0xFFFAF7F4),
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
@@ -1457,7 +1454,7 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                                 icon: Icons.motorcycle,
                                 isDark: isDark,
                               ),
-                              const Divider(height: 1),
+                              const Divider(height: 1, color: Color(0xFFE5D7C9)),
 
                               if (discountPercentage > 0) ...[
                                 _buildPriceRow(
@@ -1467,7 +1464,7 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                                   isDiscount: true,
                                   isDark: isDark,
                                 ),
-                                const Divider(height: 1),
+                                const Divider(height: 1, color: Color(0xFFE5D7C9)),
                               ],
 
                               if (discountPercentage > 0)
@@ -1478,7 +1475,7 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                                   isDark: isDark,
                                 ),
 
-                              if (discountPercentage > 0) const Divider(height: 1),
+                              if (discountPercentage > 0) const Divider(height: 1, color: Color(0xFFE5D7C9)),
 
                               _buildPriceRow(
                                 label: 'Platform Fee',
@@ -1487,7 +1484,7 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                                 isPlatformFee: true,
                                 isDark: isDark,
                               ),
-                              const Divider(height: 1),
+                              const Divider(height: 1, color: Color(0xFFE5D7C9)),
 
                               _buildPriceRow(
                                 label: 'Total Amount',
@@ -1516,12 +1513,12 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          const Text(
                             'Available Offers',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.white : const Color(0xFF1F2937),
+                              color: Color(0xFF2B1B12),
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -1529,7 +1526,7 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                             padding: const EdgeInsets.all(16),
                             decoration: const BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
+                                colors: [Color(0xFFFF5A1F), Color(0xFFD97736)],
                               ),
                               borderRadius: BorderRadius.all(Radius.circular(12)),
                             ),
@@ -1564,7 +1561,7 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                                         'Special offer from partner',
                                         style: TextStyle(
                                           fontSize: 12,
-                                          color: Colors.white.withOpacity(0.8),
+                                          color: Colors.white.withOpacity(0.85),
                                         ),
                                       ),
                                     ],
@@ -1585,7 +1582,7 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                                     },
                                     style: TextButton.styleFrom(
                                       backgroundColor: Colors.white,
-                                      foregroundColor: const Color(0xFF3B82F6),
+                                      foregroundColor: const Color(0xFFFF5A1F),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(8),
                                       ),
@@ -1633,12 +1630,12 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                   // Terms & Conditions
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Center(
+                    child: const Center(
                       child: Text(
                         'By proceeding, you agree to our Terms & Conditions',
                         style: TextStyle(
                           fontSize: 12,
-                          color: isDark ? Colors.grey[500] : Colors.grey[500],
+                          color: Color(0xFF7D6C62),
                         ),
                       ),
                     ),
@@ -1654,10 +1651,10 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1F2937) : Colors.white,
+              color: const Color(0xFFFAF7F4),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withOpacity(0.08),
                   blurRadius: 10,
                   offset: const Offset(0, -2),
                 ),
@@ -1669,13 +1666,11 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                 width: double.infinity,
                 height: 55,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                  ),
+                  color: const Color(0xFFFF5A1F),
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF3B82F6).withOpacity(0.3),
+                      color: const Color(0xFFFF5A1F).withOpacity(0.3),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -1696,6 +1691,7 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
           ),
         ],
       ),
+      ),
     );
   }
 
@@ -1706,20 +1702,20 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFF3B82F6)
-              : (isDark ? const Color(0xFF111827) : Colors.grey[100]),
+              ? const Color(0xFFFF5A1F)
+              : const Color(0xFFF5EFE9),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected
-                ? const Color(0xFF3B82F6)
-                : (isDark ? Colors.grey[800]! : Colors.grey[200]!),
+                ? const Color(0xFFFF5A1F)
+                : const Color(0xFFE5D7C9),
           ),
         ),
         child: Column(
           children: [
             Icon(
               icon,
-              color: isSelected ? Colors.white : (isDark ? Colors.grey[400] : Colors.grey[600]),
+              color: isSelected ? Colors.white : const Color(0xFF7D6C62),
               size: 24,
             ),
             const SizedBox(height: 4),
@@ -1728,7 +1724,7 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? Colors.white : (isDark ? Colors.grey[400] : Colors.grey[600]),
+                color: isSelected ? Colors.white : const Color(0xFF7D6C62),
               ),
             ),
           ],
@@ -1803,9 +1799,7 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                   ? const Color(0xFFF59E0B).withOpacity(0.1)
                   : isDiscount
                   ? const Color(0xFF10B981).withOpacity(0.1)
-                  : isTotal
-                  ? const Color(0xFF3B82F6).withOpacity(0.1)
-                  : (isDark ? Colors.grey[800] : Colors.grey[100]),
+                  : const Color(0xFFF7E9DF),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
@@ -1815,9 +1809,7 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                   ? const Color(0xFFF59E0B)
                   : isDiscount
                   ? const Color(0xFF10B981)
-                  : isTotal
-                  ? const Color(0xFF3B82F6)
-                  : (isDark ? Colors.grey[400] : Colors.grey[600]),
+                  : const Color(0xFFFF5A1F),
             ),
           ),
           const SizedBox(width: 12),
@@ -1828,10 +1820,10 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
                 fontSize: 14,
                 fontWeight: isBold ? FontWeight.w600 : FontWeight.normal,
                 color: isTotal
-                    ? (isDark ? Colors.white : const Color(0xFF1F2937))
+                    ? const Color(0xFF2B1B12)
                     : isDiscount
                     ? const Color(0xFF10B981)
-                    : (isDark ? Colors.grey[300] : Colors.grey[700]),
+                    : const Color(0xFF7D6C62),
               ),
             ),
           ),
@@ -1841,10 +1833,10 @@ class _RiderPriceBreakupState extends State<RiderPriceBreakup> {
               fontSize: 14,
               fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
               color: isTotal
-                  ? const Color(0xFF3B82F6)
+                  ? const Color(0xFFFF5A1F)
                   : isDiscount
                   ? const Color(0xFF10B981)
-                  : (isDark ? Colors.grey[300] : Colors.grey[800]),
+                  : const Color(0xFF2B1B12),
             ),
           ),
         ],
@@ -1938,11 +1930,15 @@ class _SuccessScreenState extends State<SuccessScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark = widget.isDarkMode;
+    const bool isDark = false;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF111827) : Colors.grey[50],
-      body: Center(
+      backgroundColor: const Color(0xFFEDE1D5),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        color: const Color(0xFFEDE1D5),
+        child: Center(
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
@@ -1959,10 +1955,10 @@ class _SuccessScreenState extends State<SuccessScreen> with SingleTickerProvider
                       height: 120,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: const Color(0xFF10B981),
+                        color: const Color(0xFFFF5A1F),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF10B981).withOpacity(0.4),
+                            color: const Color(0xFFFF5A1F).withOpacity(0.4),
                             blurRadius: 30,
                             spreadRadius: 5,
                           ),
@@ -1986,7 +1982,7 @@ class _SuccessScreenState extends State<SuccessScreen> with SingleTickerProvider
                     child: Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1F2937) : Colors.white,
+                        color: const Color(0xFFFAF7F4),
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
                           BoxShadow(
@@ -1998,27 +1994,27 @@ class _SuccessScreenState extends State<SuccessScreen> with SingleTickerProvider
                       ),
                       child: Column(
                         children: [
-                          Text(
+                          const Text(
                             'Congratulations! 🎉',
                             style: TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.white : const Color(0xFF1F2937),
+                              color: Color(0xFF2B1B12),
                             ),
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 12),
-                          Text(
+                          const Text(
                             'Your booking has been confirmed',
                             style: TextStyle(
                               fontSize: 16,
-                              color: isDark ? Colors.grey[400] : Colors.grey[600],
+                              color: Color(0xFF7D6C62),
                             ),
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 24),
-                          Divider(
-                            color: isDark ? Colors.grey[800] : Colors.grey[200],
+                          const Divider(
+                            color: Color(0xFFE5D7C9),
                             height: 1,
                           ),
                           const SizedBox(height: 24),
@@ -2047,18 +2043,18 @@ class _SuccessScreenState extends State<SuccessScreen> with SingleTickerProvider
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
-                                colors: [Color(0xFF3B82F6), Color(0xFF60A5FA)],
+                                colors: [Color(0xFFFF5A1F), Color(0xFFD97736)],
                               ),
                               borderRadius: BorderRadius.circular(16),
                             ),
-                            child: Row(
+                            child: const Row(
                               children: [
-                                const Icon(Icons.info_outline, color: Colors.white),
-                                const SizedBox(width: 12),
+                                Icon(Icons.info_outline, color: Colors.white),
+                                SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
                                     'You can view your booking details in the "My Rides" section',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 13,
                                     ),
@@ -2085,13 +2081,11 @@ class _SuccessScreenState extends State<SuccessScreen> with SingleTickerProvider
                         width: double.infinity,
                         height: 55,
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF3B82F6), Color(0xFF60A5FA)],
-                          ),
+                          color: const Color(0xFFFF5A1F),
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF3B82F6).withOpacity(0.3),
+                              color: const Color(0xFFFF5A1F).withOpacity(0.3),
                               blurRadius: 12,
                               offset: const Offset(0, 4),
                             ),
@@ -2116,11 +2110,11 @@ class _SuccessScreenState extends State<SuccessScreen> with SingleTickerProvider
                 // Auto-redirect note
                 FadeTransition(
                   opacity: _fadeAnimation,
-                  child: Text(
+                  child: const Text(
                     'Auto-redirecting in 3 seconds...',
                     style: TextStyle(
                       fontSize: 12,
-                      color: isDark ? Colors.grey[500] : Colors.grey[400],
+                      color: Color(0xFF7D6C62),
                     ),
                   ),
                 ),
@@ -2128,6 +2122,7 @@ class _SuccessScreenState extends State<SuccessScreen> with SingleTickerProvider
             ),
           ),
         ),
+      ),
       ),
     );
   }
@@ -2138,31 +2133,31 @@ class _SuccessScreenState extends State<SuccessScreen> with SingleTickerProvider
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: const Color(0xFF3B82F6).withOpacity(0.1),
+            color: const Color(0xFFF7E9DF),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(
             icon,
             size: 20,
-            color: const Color(0xFF3B82F6),
+            color: const Color(0xFFFF5A1F),
           ),
         ),
         const SizedBox(width: 16),
         Expanded(
           child: Text(
             label,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
-              color: isDark ? Colors.grey[400] : Colors.grey[600],
+              color: Color(0xFF7D6C62),
             ),
           ),
         ),
         Text(
           value,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: isDark ? Colors.white : const Color(0xFF1F2937),
+            color: Color(0xFF2B1B12),
           ),
         ),
       ],

@@ -14,6 +14,7 @@ import 'rider_emailverification.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../widgets/app_icon_or_image.dart';
 
 class RiderAuthScreen extends StatefulWidget {
   const RiderAuthScreen({super.key});
@@ -40,15 +41,22 @@ class _RiderAuthScreenState extends State<RiderAuthScreen>
   );
 
   // API Base URL with dynamic switching
-  static const bool _usePhysicalDevice = true;
+  static const bool _usePhysicalDevice = false;
 
   String get baseUrl {
     if (_usePhysicalDevice) {
       return 'http://10.0.2.2:3000/api';
     } else {
-      return 'https://bikerzzz-backend.onrender.com/api';
+      return 'https://carzzz-frontend.onrender.com/api';
     }
   }
+
+  // Optional Brand Logo Controls (set image path e.g. 'assets/icon.png' or any PNG image)
+  static const String? _brandLogoAsset = null;
+  static const double _brandLogoSize = 26.0;
+  static const double _brandLogoScale = 1.0;
+  static const double _brandLogoOffsetX = 0.0; // Negative = Left, Positive = Right
+  static const double _brandLogoOffsetY = 0.0; // Negative = Up, Positive = Down
 
   // Login form controllers
   final TextEditingController _loginEmailController = TextEditingController();
@@ -510,20 +518,33 @@ class _RiderAuthScreenState extends State<RiderAuthScreen>
             },
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              setState(() {
-                _isGoogleLoading = false;
-              });
-              await Future.delayed(const Duration(milliseconds: 300));
-              _handleGoogleSignIn();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF3B82F6),
-              foregroundColor: Colors.white,
+          Container(
+            decoration: BoxDecoration(
+              image: const DecorationImage(
+                image: AssetImage('assets/buttonsbg.png'),
+                fit: BoxFit.cover,
+              ),
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: const Text('Try Again'),
+            child: ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                setState(() {
+                  _isGoogleLoading = false;
+                });
+                await Future.delayed(const Duration(milliseconds: 300));
+                _handleGoogleSignIn();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                foregroundColor: Colors.white,
+                shadowColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Try Again'),
+            ),
           ),
         ],
       ),
@@ -691,17 +712,11 @@ class _RiderAuthScreenState extends State<RiderAuthScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFEDE1D5),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF0F172A),
-              Color(0xFF1E293B),
-            ],
-          ),
-        ),
+        width: double.infinity,
+        height: double.infinity,
+        color: const Color(0xFFEDE1D5),
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -722,165 +737,192 @@ class _RiderAuthScreenState extends State<RiderAuthScreen>
                             child: Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                                ),
+                                color: const Color(0xFFE6D6C8),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Icon(
                                 Icons.arrow_back,
-                                color: Colors.white,
-                                size: 20,
+                                color: Color(0xFF2B1B12),
+                                size: 24,
                               ),
                             ),
                           ),
                           const SizedBox(width: 16),
                           const Text(
-                            'Driver Authentication',
+                            '',
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: Color(0xFF2B1B12),
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 32),
 
-                      // Brand Section
-                      Row(
-                        children: [
-                          Container(
-                            width: 50,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                              ),
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF3B82F6).withOpacity(0.3),
-                                  blurRadius: 20,
-                                  spreadRadius: 5,
+// Brand Section - Centered
+                      Center(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min, // Makes the Row take minimum space
+                          children: [
+
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ShaderMask(
+                                  shaderCallback: (bounds) => const LinearGradient(
+                                    colors: [Color(0xFF2B1B12), Color(0xFFFF5A1F)],
+                                  ).createShader(bounds),
+                                  child: const Text(
+                                    'Carzzz',
+                                    style: TextStyle(
+                                      fontSize: 40,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
+                                ),
+                                const Text(
+                                  'Premium Car Rental',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    color: Color(0xFF7D6C62),
+                                    fontWeight: FontWeight.w400,
+                                    letterSpacing: 2,
+                                  ),
                                 ),
                               ],
                             ),
-                            child: const Icon(
-                              Icons.directions_car,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ShaderMask(
-                                shaderCallback: (bounds) => const LinearGradient(
-                                  colors: [Color(0xFF60A5FA), Color(0xFFA78BFA)],
-                                ).createShader(bounds),
-                                child: const Text(
-                                  'Carzzz',
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                    letterSpacing: 1,
-                                  ),
-                                ),
-                              ),
-                              const Text(
-                                'Premium Car Rental',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF94A3B8),
-                                  fontWeight: FontWeight.w300,
-                                  letterSpacing: 2,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 32),
 
-                      // ========== REDESIGNED MAIN CARD ==========
+                      // ========== 3D MAIN CARD ==========
                       Container(
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              const Color(0xFF1E293B).withOpacity(0.8),
-                              const Color(0xFF0F172A).withOpacity(0.8),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: const Color(0xFF3B82F6).withOpacity(0.2),
-                            width: 1,
-                          ),
+                          color: const Color(0xFFC7B3A1), // Deep solid 3D extrusion base lip
+                          borderRadius: BorderRadius.circular(24),
                           boxShadow: [
+                            // Deep contact shadow under depth lip
+                            const BoxShadow(
+                              color: Color(0x332B1B12),
+                              blurRadius: 8,
+                              offset: Offset(0, 7),
+                            ),
+                            // Wide ambient 3D elevation shadow
                             BoxShadow(
-                              color: const Color(0xFF3B82F6).withOpacity(0.1),
-                              blurRadius: 20,
-                              offset: const Offset(0, 4),
+                              color: Colors.black.withOpacity(0.10),
+                              blurRadius: 24,
+                              offset: const Offset(0, 14),
                             ),
                           ],
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(24.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        padding: const EdgeInsets.only(bottom: 7.0), // 3D depth lip extrusion
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Color(0xFFFFFFFF), // Crisp top light reflection
+                                Color(0xFFFAF7F4), // Main face body
+                                Color(0xFFF3ECE4), // Subtle bottom ambient shade
+                              ],
+                              stops: [0.0, 0.40, 1.0],
+                            ),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: const Color(0xFFE2D3C4),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Stack(
                             children: [
-                              // ========== REDESIGNED TAB BAR ==========
-                              Container(
-                                height: 52,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF0F172A),
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(
-                                    color: const Color(0xFF334155),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: TabBar(
-                                  controller: _tabController,
-                                  indicator: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
+                              // Specular highlight line along top rim
+                              Positioned(
+                                top: 0,
+                                left: 24,
+                                right: 24,
+                                height: 1.5,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Colors.white.withOpacity(0.0),
+                                        Colors.white.withOpacity(0.9),
+                                        Colors.white.withOpacity(0.0),
+                                      ],
                                     ),
-                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                  indicatorSize: TabBarIndicatorSize.tab,
-                                  labelColor: Colors.white,
-                                  unselectedLabelColor: const Color(0xFF94A3B8),
-                                  labelStyle: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  unselectedLabelStyle: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  dividerColor: Colors.transparent,
-                                  tabs: const [
-                                    Tab(text: 'Sign In'),
-                                    Tab(text: 'Sign Up'),
-                                  ],
                                 ),
                               ),
-                              const SizedBox(height: 24),
-
-                              // ========== REDESIGNED TAB VIEWS ==========
-                              SizedBox(
-                                height: _tabController.index == 0 ? 420 : 550,
-                                child: TabBarView(
-                                  controller: _tabController,
+                              Padding(
+                                padding: const EdgeInsets.all(24.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _buildLoginTab(),
-                                    _buildSignupTab(),
+                                    // ========== 3D TAB BAR ==========
+                                    Container(
+                                      height: 52,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFEDE4DC),
+                                        borderRadius: BorderRadius.circular(14),
+                                        border: Border.all(
+                                          color: const Color(0xFFDFD1C4),
+                                          width: 1,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.04),
+                                            blurRadius: 3,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: TabBar(
+                                        controller: _tabController,
+                                        indicator: const _ThreeDTabIndicator(),
+                                        indicatorSize: TabBarIndicatorSize.tab,
+                                        labelColor: Colors.white,
+                                        unselectedLabelColor: const Color(0xFF7D6C62),
+                                        labelStyle: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w700,
+                                          shadows: [
+                                            Shadow(
+                                              color: Color(0x664A1400),
+                                              offset: Offset(0, 1),
+                                              blurRadius: 2,
+                                            ),
+                                          ],
+                                        ),
+                                        unselectedLabelStyle: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        dividerColor: Colors.transparent,
+                                        tabs: const [
+                                          Tab(text: 'Sign In'),
+                                          Tab(text: 'Sign Up'),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 24),
+
+                                    // ========== REDESIGNED TAB VIEWS ==========
+                                    SizedBox(
+                                      height: _tabController.index == 0 ? 420 : 550,
+                                      child: TabBarView(
+                                        controller: _tabController,
+                                        children: [
+                                          _buildLoginTab(),
+                                          _buildSignupTab(),
+                                        ],
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -891,38 +933,16 @@ class _RiderAuthScreenState extends State<RiderAuthScreen>
                       const SizedBox(height: 24),
 
                       // ========== REDESIGNED FOOTER ==========
-                      Row(
+                      const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text(
-                            'Need help? ',
-                            style: TextStyle(
-                              color: Color(0xFF64748B),
-                              fontSize: 14,
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () {
-                              _showSnackBar('Contact Support: support@carzzz.com', const Color(0xFF3B82F6));
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-                                ),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: const Text(
-                                'Contact Support',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                          Expanded(
+                            child: Text(
+                              'Application is currently under construction.🚧\nPlease use Google Sign-In to access the application.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Color(0xFF7D6C62),
+                                fontSize: 14,
                               ),
                             ),
                           ),
@@ -959,7 +979,7 @@ class _RiderAuthScreenState extends State<RiderAuthScreen>
           suffixIcon: IconButton(
             icon: Icon(
               _isLoginPasswordVisible ? Icons.visibility : Icons.visibility_off,
-              color: const Color(0xFF64748B),
+              color: const Color(0xFF7D6C62),
             ),
             onPressed: () {
               setState(() {
@@ -981,17 +1001,17 @@ class _RiderAuthScreenState extends State<RiderAuthScreen>
                       _rememberMe = value ?? false;
                     });
                   },
-                  activeColor: const Color(0xFF3B82F6),
+                  activeColor: const Color(0xFFFF5A1F),
                   checkColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  side: const BorderSide(color: Color(0xFF334155)),
+                  side: const BorderSide(color: Color(0xFFBDA999)),
                 ),
                 const Text(
                   'Remember me',
                   style: TextStyle(
-                    color: Color(0xFF94A3B8),
+                    color: Color(0xFF7D6C62),
                     fontSize: 14,
                   ),
                 ),
@@ -1007,7 +1027,7 @@ class _RiderAuthScreenState extends State<RiderAuthScreen>
               child: const Text(
                 'Forgot Password?',
                 style: TextStyle(
-                  color: Color(0xFF60A5FA),
+                  color: Color(0xFFFF5A1F),
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
@@ -1053,7 +1073,7 @@ class _RiderAuthScreenState extends State<RiderAuthScreen>
           onTap: _selectDate,
           suffixIcon: const Icon(
             Icons.arrow_drop_down,
-            color: Color(0xFF64748B),
+            color: Color(0xFF7D6C62),
           ),
         ),
         const SizedBox(height: 16),
@@ -1065,7 +1085,7 @@ class _RiderAuthScreenState extends State<RiderAuthScreen>
           suffixIcon: IconButton(
             icon: Icon(
               _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-              color: const Color(0xFF64748B),
+              color: const Color(0xFF7D6C62),
             ),
             onPressed: () {
               setState(() {
@@ -1083,7 +1103,7 @@ class _RiderAuthScreenState extends State<RiderAuthScreen>
           suffixIcon: IconButton(
             icon: Icon(
               _isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off,
-              color: const Color(0xFF64748B),
+              color: const Color(0xFF7D6C62),
             ),
             onPressed: () {
               setState(() {
@@ -1102,34 +1122,34 @@ class _RiderAuthScreenState extends State<RiderAuthScreen>
                   _agreeToTerms = value ?? false;
                 });
               },
-              activeColor: const Color(0xFF3B82F6),
+              activeColor: const Color(0xFFFF5A1F),
               checkColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(4),
               ),
-              side: const BorderSide(color: Color(0xFF334155)),
+              side: const BorderSide(color: Color(0xFFBDA999)),
             ),
             Expanded(
               child: RichText(
-                text: TextSpan(
-                  style: const TextStyle(
-                    color: Color(0xFF94A3B8),
+                text: const TextSpan(
+                  style: TextStyle(
+                    color: Color(0xFF7D6C62),
                     fontSize: 13,
                   ),
                   children: [
-                    const TextSpan(text: 'I agree to the '),
+                    TextSpan(text: 'I agree to the '),
                     TextSpan(
                       text: 'Terms of Service',
-                      style: const TextStyle(
-                        color: Color(0xFF60A5FA),
+                      style: TextStyle(
+                        color: Color(0xFFFF5A1F),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const TextSpan(text: ' and '),
+                    TextSpan(text: ' and '),
                     TextSpan(
                       text: 'Privacy Policy',
-                      style: const TextStyle(
-                        color: Color(0xFF60A5FA),
+                      style: TextStyle(
+                        color: Color(0xFFFF5A1F),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -1162,10 +1182,10 @@ class _RiderAuthScreenState extends State<RiderAuthScreen>
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: const Color(0xFFF5EFE9),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: const Color(0xFF334155),
+          color: const Color(0xFFE5D7C9),
           width: 1,
         ),
       ),
@@ -1175,11 +1195,11 @@ class _RiderAuthScreenState extends State<RiderAuthScreen>
         obscureText: obscureText,
         readOnly: readOnly,
         onTap: onTap,
-        style: const TextStyle(color: Colors.white),
+        style: const TextStyle(color: Color(0xFF2B1B12)),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
-          prefixIcon: Icon(icon, color: const Color(0xFF64748B), size: 20),
+          labelStyle: const TextStyle(color: Color(0xFF7D6C62)),
+          prefixIcon: Icon(icon, color: const Color(0xFFFF5A1F), size: 20),
           suffixIcon: suffixIcon,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -1188,52 +1208,78 @@ class _RiderAuthScreenState extends State<RiderAuthScreen>
     );
   }
 
-  // ========== REDESIGNED BUTTON ==========
+  // ========== 3D BUTTON ==========
   Widget _buildModernButton({
     required String text,
     required bool isLoading,
     required VoidCallback onTap,
   }) {
+    const Color baseColor = Color(0xFFFF5A1F);
+    const Color depthLipColor = Color(0xFFCC3F0C);
+    const Color highlightColor = Color(0xFFFF7A47);
+    const Color lowerFaceColor = Color(0xFFE64A12);
+
     return Container(
       width: double.infinity,
+      padding: const EdgeInsets.only(bottom: 4.5),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
-        ),
-        borderRadius: BorderRadius.circular(12),
+        color: depthLipColor,
+        borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF3B82F6).withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: depthLipColor.withOpacity(0.40),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: isLoading ? null : onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Center(
-              child: isLoading
-                  ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
-                  : Text(
-                text,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 1,
-                ),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [highlightColor, baseColor, lowerFaceColor],
+            stops: [0.0, 0.45, 1.0],
+          ),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.35),
+            width: 1,
+          ),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: isLoading ? null : onTap,
+            borderRadius: BorderRadius.circular(14),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Center(
+                child: isLoading
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : Text(
+                        text,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1,
+                          shadows: [
+                            Shadow(
+                              color: Color(0x554A1400),
+                              offset: Offset(0, 1),
+                              blurRadius: 2,
+                            ),
+                          ],
+                        ),
+                      ),
               ),
             ),
           ),
@@ -1250,7 +1296,7 @@ class _RiderAuthScreenState extends State<RiderAuthScreen>
           children: [
             Expanded(
               child: Divider(
-                color: Color(0xFF334155),
+                color: Color(0xFFE5D7C9),
                 thickness: 1,
               ),
             ),
@@ -1258,12 +1304,12 @@ class _RiderAuthScreenState extends State<RiderAuthScreen>
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 'Or continue with',
-                style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                style: TextStyle(color: Color(0xFF7D6C62), fontSize: 13),
               ),
             ),
             Expanded(
               child: Divider(
-                color: Color(0xFF334155),
+                color: Color(0xFFE5D7C9),
                 thickness: 1,
               ),
             ),
@@ -1279,12 +1325,12 @@ class _RiderAuthScreenState extends State<RiderAuthScreen>
               height: 24,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3B82F6)),
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF5A1F)),
               ),
             )
                 : _buildModernSocialButton(
               icon: Icons.g_mobiledata,
-              color: Colors.red,
+              color: const Color(0xFFFF5A1F),
               onTap: _handleGoogleSignIn,
             ),
           ],
@@ -1293,29 +1339,53 @@ class _RiderAuthScreenState extends State<RiderAuthScreen>
     );
   }
 
+  // ========== 3D SOCIAL BUTTON ==========
   Widget _buildModernSocialButton({
     required IconData icon,
     required Color color,
     required VoidCallback onTap,
   }) {
     return Container(
-      width: 50,
-      height: 50,
+      width: 52,
+      height: 52,
+      padding: const EdgeInsets.only(bottom: 3.5),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFF334155),
-          width: 1,
-        ),
+        color: const Color(0xFFD6C6B8), // 3D depth lip
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0x2E2B1B12),
+            blurRadius: 6,
+            offset: const Offset(0, 3.5),
+          ),
+        ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Center(
-            child: Icon(icon, color: color, size: 30),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFFFFFFFF),
+              Color(0xFFFAF7F4),
+              Color(0xFFF3ECE4),
+            ],
+            stops: [0.0, 0.45, 1.0],
+          ),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: const Color(0xFFE2D3C4),
+            width: 1.2,
+          ),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(14),
+            child: Center(
+              child: Icon(icon, color: color, size: 30),
+            ),
           ),
         ),
       ),
@@ -1333,5 +1403,95 @@ extension Base64Utils on String {
       default:
         return input;
     }
+  }
+}
+
+// ========== 3D ORANGE TAB INDICATOR (SIGN IN / SIGN UP) ==========
+class _ThreeDTabIndicator extends Decoration {
+  final Color baseColor;
+  final Color depthLipColor;
+  final Color highlightColor;
+  final Color lowerFaceColor;
+  final double depth;
+
+  const _ThreeDTabIndicator({
+    this.baseColor = const Color(0xFFFF5A1F),
+    this.depthLipColor = const Color(0xFFCC3F0C),
+    this.highlightColor = const Color(0xFFFF7A47),
+    this.lowerFaceColor = const Color(0xFFE64A12),
+    this.depth = 3.5,
+  });
+
+  @override
+  BoxPainter createBoxPainter([VoidCallback? onChanged]) {
+    return _ThreeDTabIndicatorPainter(this, onChanged);
+  }
+}
+
+class _ThreeDTabIndicatorPainter extends BoxPainter {
+  final _ThreeDTabIndicator decoration;
+
+  _ThreeDTabIndicatorPainter(this.decoration, VoidCallback? onChanged)
+      : super(onChanged);
+
+  @override
+  void paint(Canvas canvas, Offset offset, ImageConfiguration configuration) {
+    final Rect rect = offset & (configuration.size ?? Size.zero);
+    if (rect.isEmpty) return;
+
+    // Inset slightly inside the tab bar container
+    final insets = const EdgeInsets.all(4.0);
+    final targetRect = insets.deflateRect(rect);
+    const radius = Radius.circular(11);
+
+    final double faceHeight = targetRect.height - decoration.depth;
+    final topRRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(
+        targetRect.left,
+        targetRect.top,
+        targetRect.width,
+        faceHeight,
+      ),
+      radius,
+    );
+    final depthRRect = topRRect.shift(Offset(0, decoration.depth));
+
+    // 1. Drop shadow under 3D depth lip
+    final shadowPaint = Paint()
+      ..color = decoration.depthLipColor.withOpacity(0.42)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7);
+    canvas.drawRRect(depthRRect.shift(const Offset(0, 3)), shadowPaint);
+
+    // 2. 3D Depth lip extrusion (solid base volume)
+    for (double dy = decoration.depth; dy >= 1.0; dy -= 0.5) {
+      canvas.drawRRect(
+        topRRect.shift(Offset(0, dy)),
+        Paint()
+          ..color = decoration.depthLipColor
+          ..style = PaintingStyle.fill,
+      );
+    }
+
+    // 3. Top Face Gradient (volumetric 3D lighting reflection)
+    final facePaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          decoration.highlightColor,
+          decoration.baseColor,
+          decoration.lowerFaceColor,
+        ],
+        stops: const [0.0, 0.45, 1.0],
+      ).createShader(topRRect.outerRect)
+      ..style = PaintingStyle.fill;
+    canvas.drawRRect(topRRect, facePaint);
+
+    // 4. Subtle top border highlight
+    final borderPaint = Paint()
+      ..color = Colors.white.withOpacity(0.35)
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+    canvas.drawRRect(topRRect, borderPaint);
   }
 }

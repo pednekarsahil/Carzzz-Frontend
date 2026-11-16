@@ -30,17 +30,17 @@ class CarzzApp extends StatelessWidget {
       title: 'carrzz',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primaryColor: const Color(0xFF3B82F6),
+        primaryColor: const Color(0xFFFF5A1F),
         colorScheme: ColorScheme.fromSwatch().copyWith(
-          primary: const Color(0xFF3B82F6),
-          secondary: const Color(0xFF10B981),
+          primary: const Color(0xFFFF5A1F),
+          secondary: const Color(0xFFD98A5C),
         ),
         fontFamily: 'Inter',
-        scaffoldBackgroundColor: Colors.grey[50],
+        scaffoldBackgroundColor: const Color(0xFFEDE1D5),
         appBarTheme: const AppBarTheme(
           elevation: 0,
           backgroundColor: Colors.transparent,
-          iconTheme: IconThemeData(color: Color(0xFF1F2937)),
+          iconTheme: IconThemeData(color: Color(0xFF2B1B12)),
         ),
       ),
       home: const ChoiceScreen(),
