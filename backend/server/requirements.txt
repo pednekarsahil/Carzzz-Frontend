@@ -18,3 +18,4 @@ google-auth==2.26.0
 google-cloud-firestore==2.14.0
 grpcio==1.60.0
 httpx==0.25.2
+redis==5.0.1

@@ -301,10 +301,20 @@ async def lifespan(app: FastAPI):
         logger.error(f"❌ MongoDB connection error: {str(e)}")
         sys.exit(1)
     
-    # Initialize Socket.IO with authentication
+    # Initialize Socket.IO with optional Redis client manager for scaling
+    redis_url = os.getenv("REDIS_URL")
+    client_manager = None
+    if redis_url:
+        try:
+            client_manager = socketio.AsyncRedisManager(redis_url)
+            logger.info("✅ Redis client manager configured for Socket.IO scaling")
+        except Exception as e:
+            logger.warning(f"⚠️ Redis connection failed, falling back to in-memory manager: {e}")
+
     sio = socketio.AsyncServer(
         cors_allowed_origins="*",
         async_mode='asgi',
+        client_manager=client_manager,
         logger=True,
         engineio_logger=True,
         ping_timeout=60,
