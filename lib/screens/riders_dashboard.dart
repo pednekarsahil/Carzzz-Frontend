@@ -4,8 +4,10 @@
 // ONLY UI/UX HAS BEEN REDESIGNED - REMOVED DARK MODE TOGGLE
 
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -2204,6 +2206,73 @@ class _RidersDashboardState extends State<RidersDashboard> {
                 ),
               ),
             const SizedBox(height: 20),
+            if (ride.status != 'completed') ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.only(bottom: 4.5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1B6E32),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF2E7D32).withOpacity(0.35),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      _showEndRideModal(context, ride);
+                    },
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Color(0xFF4CAF50), Color(0xFF2E7D32), Color(0xFF1B5E20)],
+                          stops: [0.0, 0.45, 1.0],
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.35),
+                          width: 1,
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            'End Ride',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              shadows: [
+                                Shadow(
+                                  color: Color(0x66000000),
+                                  offset: Offset(0, 1),
+                                  blurRadius: 2,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
             Container(
               width: double.infinity,
               padding: const EdgeInsets.only(bottom: 4.5),
@@ -2298,6 +2367,784 @@ class _RidersDashboardState extends State<RidersDashboard> {
           ),
         ),
       ],
+    );
+  }
+
+  void _showEndRideModal(BuildContext dialogContext, Ride ride) {
+    final DateTime now = DateTime.now();
+    final DateTime scheduledEnd = ride.endDateTime ?? ride.bookingDate.add(const Duration(days: 1));
+    final DateTime rentalStart = ride.startDateTime ?? ride.bookingDate;
+    final bool isOverdue = now.isAfter(scheduledEnd);
+
+    int overdueDays = 0;
+    int overdueHours = 0;
+    double extraAmount = 0.0;
+
+    if (isOverdue) {
+      final Duration overdueDuration = now.difference(scheduledEnd);
+      if (ride.rentalType == 'hourly') {
+        final int origHours = math.max(1, scheduledEnd.difference(rentalStart).inHours);
+        final double hourlyRate = ride.amount / origHours;
+        overdueHours = (overdueDuration.inMinutes / 60.0).ceil();
+        if (overdueHours < 1) overdueHours = 1;
+        extraAmount = double.parse((overdueHours * hourlyRate).toStringAsFixed(2));
+      } else {
+        final int origDays = math.max(1, (scheduledEnd.difference(rentalStart).inHours / 24.0).ceil());
+        final double dailyRate = ride.amount / origDays;
+        overdueDays = (overdueDuration.inMinutes / (24.0 * 60.0)).ceil();
+        if (overdueDays < 1) overdueDays = 1;
+        extraAmount = double.parse((overdueDays * dailyRate).toStringAsFixed(2));
+      }
+    }
+
+    final List<XFile> afterRideImages = [];
+    bool isSubmitting = false;
+    bool isPayingExtra = false;
+    bool isExtraPaid = !isOverdue;
+    String? extraPaymentId;
+
+    showModalBottomSheet(
+      context: dialogContext,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final bool canConfirmEnd = afterRideImages.isNotEmpty && isExtraPaid && !isSubmitting;
+
+            Future<void> pickImage(ImageSource source) async {
+              try {
+                final ImagePicker picker = ImagePicker();
+                final XFile? file = await picker.pickImage(
+                  source: source,
+                  maxWidth: 1200,
+                  maxHeight: 1200,
+                  imageQuality: 80,
+                );
+                if (file != null) {
+                  setModalState(() {
+                    afterRideImages.add(file);
+                  });
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error selecting image: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            }
+
+            return Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.88,
+              ),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFAF7F4),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Drag Handle
+                  Container(
+                    margin: const EdgeInsets.only(top: 12, bottom: 8),
+                    width: 44,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD6C7B8),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2E7D32).withOpacity(0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.two_wheeler,
+                            color: Color(0xFF2E7D32),
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'End Ride & Return',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF2B1B12),
+                                ),
+                              ),
+                              Text(
+                                ride.carName.isNotEmpty ? ride.carName : ride.carModel,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF7D6C62),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Color(0xFF7D6C62)),
+                          onPressed: () => Navigator.pop(sheetContext),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(color: Color(0xFFE5D7C9), height: 1),
+
+                  // Scrollable Content
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // SECTION 1: AFTER RIDE IMAGES
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'After-Ride Scooty Photos *',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF2B1B12),
+                                ),
+                              ),
+                              Text(
+                                '${afterRideImages.length} photo(s)',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: afterRideImages.isNotEmpty
+                                      ? const Color(0xFF2E7D32)
+                                      : const Color(0xFFE65100),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Please add clear photos showing the scooty condition after your ride.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF7D6C62),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+
+                          // Add Photo Action Buttons
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () => pickImage(ImageSource.camera),
+                                  icon: const Icon(Icons.camera_alt, size: 18, color: Color(0xFFFF5A1F)),
+                                  label: const Text(
+                                    'Take Photo',
+                                    style: TextStyle(
+                                      color: Color(0xFF2B1B12),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 11),
+                                    side: const BorderSide(color: Color(0xFFFF5A1F)),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    backgroundColor: const Color(0xFFFF5A1F).withOpacity(0.04),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () => pickImage(ImageSource.gallery),
+                                  icon: const Icon(Icons.photo_library, size: 18, color: Color(0xFF2E7D32)),
+                                  label: const Text(
+                                    'Gallery',
+                                    style: TextStyle(
+                                      color: Color(0xFF2B1B12),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 11),
+                                    side: const BorderSide(color: Color(0xFF2E7D32)),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    backgroundColor: const Color(0xFF2E7D32).withOpacity(0.04),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+
+                          // Images Thumbnail Display
+                          if (afterRideImages.isNotEmpty)
+                            SizedBox(
+                              height: 96,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: afterRideImages.length,
+                                separatorBuilder: (_, __) => const SizedBox(width: 10),
+                                itemBuilder: (context, idx) {
+                                  return Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      Container(
+                                        width: 90,
+                                        height: 90,
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(color: const Color(0xFFD6C7B8)),
+                                          image: DecorationImage(
+                                            image: FileImage(File(afterRideImages[idx].path)),
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
+                                      ),
+                                      Positioned(
+                                        top: -6,
+                                        right: -6,
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            setModalState(() {
+                                              afterRideImages.removeAt(idx);
+                                            });
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.all(4),
+                                            decoration: const BoxDecoration(
+                                              color: Color(0xFFEF4444),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(
+                                              Icons.close,
+                                              size: 14,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                            )
+                          else
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: const Color(0xFFE5D7C9),
+                                  style: BorderStyle.solid,
+                                ),
+                              ),
+                              child: const Column(
+                                children: [
+                                  Icon(Icons.photo_camera_back_outlined, size: 32, color: Color(0xFFB5A496)),
+                                  SizedBox(height: 6),
+                                  Text(
+                                    'No photos added yet',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF7D6C62),
+                                    ),
+                                  ),
+                                  SizedBox(height: 2),
+                                  Text(
+                                    'Upload at least 1 photo to complete ride',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Color(0xFF9E8E82),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          const SizedBox(height: 20),
+                          const Divider(color: Color(0xFFE5D7C9)),
+                          const SizedBox(height: 16),
+
+                          // SECTION 2: BOOKING DURATION & OVERDUE CHECK
+                          const Text(
+                            'Rental & Cost Calculation',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF2B1B12),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFE5D7C9)),
+                            ),
+                            child: Column(
+                              children: [
+                                _buildRideDetailRow(
+                                  icon: Icons.calendar_today,
+                                  label: 'Scheduled End',
+                                  value: _formatDateTime(scheduledEnd),
+                                  isDark: false,
+                                ),
+                                const SizedBox(height: 8),
+                                _buildRideDetailRow(
+                                  icon: Icons.access_time,
+                                  label: 'Current Return',
+                                  value: _formatDateTime(now),
+                                  isDark: false,
+                                ),
+                                const SizedBox(height: 8),
+                                _buildRideDetailRow(
+                                  icon: Icons.currency_rupee,
+                                  label: 'Original Paid',
+                                  value: '₹${ride.amount.toStringAsFixed(2)}',
+                                  isDark: false,
+                                  isBold: true,
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 14),
+
+                          // OVERDUE CALCULATION OR ON-TIME BANNER
+                          if (isOverdue) ...[
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFF7ED),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: const Color(0xFFFED7AA)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Row(
+                                    children: [
+                                      Icon(Icons.warning_amber_rounded, color: Color(0xFFEA580C), size: 22),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Overdue Return Detected',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFFC2410C),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Initial booking duration was 1 day (paid ₹${ride.amount.toStringAsFixed(2)}). '
+                                    'Returning extra ${overdueDays > 0 ? '$overdueDays day(s)' : '$overdueHours hour(s)'} overdue. '
+                                    'Please pay the remaining amount before ending the ride.',
+                                    style: const TextStyle(
+                                      fontSize: 12.5,
+                                      color: Color(0xFF9A3412),
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: const Color(0xFFFDBA74)),
+                                    ],
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        const Text(
+                                          'Remaining Amount Due:',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF2B1B12),
+                                          ),
+                                        ),
+                                        Text(
+                                          '₹${extraAmount.toStringAsFixed(2)}',
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFFEA580C),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 14),
+
+                                  if (!isExtraPaid)
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.only(bottom: 3.5),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFC2410C),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Material(
+                                        color: Colors.transparent,
+                                        child: InkWell(
+                                          onTap: isPayingExtra
+                                              ? null
+                                              : () async {
+                                                  setModalState(() {
+                                                    isPayingExtra = true;
+                                                  });
+                                                  // Simulate Razorpay payment confirmation
+                                                  await Future.delayed(const Duration(milliseconds: 1200));
+                                                  setModalState(() {
+                                                    isPayingExtra = false;
+                                                    isExtraPaid = true;
+                                                    extraPaymentId = 'pay_ext_${DateTime.now().millisecondsSinceEpoch}';
+                                                  });
+                                                  if (mounted) {
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      SnackBar(
+                                                        content: Text(
+                                                          'Remaining amount of ₹${extraAmount.toStringAsFixed(2)} paid successfully!',
+                                                        ),
+                                                        backgroundColor: const Color(0xFF2E7D32),
+                                                      ),
+                                                    );
+                                                  }
+                                                },
+                                          borderRadius: BorderRadius.circular(12),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(vertical: 12),
+                                            decoration: BoxDecoration(
+                                              gradient: const LinearGradient(
+                                                colors: [Color(0xFFFB923C), Color(0xFFEA580C)],
+                                              ),
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: Center(
+                                              child: isPayingExtra
+                                                  ? const SizedBox(
+                                                      width: 20,
+                                                      height: 20,
+                                                      child: CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                        color: Colors.white,
+                                                      ),
+                                                    )
+                                                  : Row(
+                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                      children: [
+                                                        const Icon(Icons.payment, color: Colors.white, size: 18),
+                                                        const SizedBox(width: 8),
+                                                        Text(
+                                                          'Pay Remaining ₹${extraAmount.toStringAsFixed(2)}',
+                                                          style: const TextStyle(
+                                                            color: Colors.white,
+                                                            fontSize: 14,
+                                                            fontWeight: FontWeight.bold,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  else
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFDCFCE7),
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(color: const Color(0xFF86EFAC)),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 20),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  'Paid ₹${extraAmount.toStringAsFixed(2)} Successfully!',
+                                                  style: const TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Color(0xFF166534),
+                                                  ),
+                                                ),
+                                                if (extraPaymentId != null)
+                                                  Text(
+                                                    'Ref: $extraPaymentId',
+                                                    style: const TextStyle(
+                                                      fontSize: 11,
+                                                      color: Color(0xFF15803D),
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ] else ...[
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF0FDF4),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: const Color(0xFFBBF7D0)),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Icon(Icons.check_circle_outline, color: Color(0xFF16A34A), size: 22),
+                                  SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Returning On Time!',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF166534),
+                                          ),
+                                        ),
+                                        SizedBox(height: 2),
+                                        Text(
+                                          'No extra charges due. Remaining amount: ₹0.00',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Color(0xFF15803D),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+
+                          const SizedBox(height: 24),
+
+                          // FINAL CONFIRM & END RIDE BUTTON
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.only(bottom: 4.5),
+                            decoration: BoxDecoration(
+                              color: canConfirmEnd
+                                  ? const Color(0xFF1B6E32)
+                                  : const Color(0xFFB5A496),
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: canConfirmEnd
+                                  ? [
+                                      BoxShadow(
+                                        color: const Color(0xFF2E7D32).withOpacity(0.35),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: canConfirmEnd
+                                    ? () async {
+                                        setModalState(() {
+                                          isSubmitting = true;
+                                        });
+
+                                        try {
+                                          final prefs = await SharedPreferences.getInstance();
+                                          final token = prefs.getString('auth_token');
+
+                                          final response = await http.post(
+                                            Uri.parse('$_baseUrl/rides/${ride.id}/complete'),
+                                            headers: {
+                                              'Authorization': 'Bearer $token',
+                                              'Content-Type': 'application/json',
+                                            },
+                                            body: json.encode({
+                                              'afterRidePhotos': afterRideImages.map((f) => f.path).toList(),
+                                              'extraAmount': extraAmount,
+                                              'extraPaymentId': extraPaymentId,
+                                            }),
+                                          ).timeout(const Duration(seconds: 20));
+
+                                          if (response.statusCode == 200) {
+                                            final data = json.decode(response.body);
+                                            if (data['success'] == true) {
+                                              Navigator.pop(sheetContext); // Close sheet
+                                              Navigator.pop(dialogContext); // Close details dialog
+                                              await _loadMyRides();
+                                              await _loadcarsFromBackend();
+                                              if (mounted) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  const SnackBar(
+                                                    content: Row(
+                                                      children: [
+                                                        Icon(Icons.check_circle, color: Colors.white),
+                                                        SizedBox(width: 8),
+                                                        Expanded(
+                                                          child: Text(
+                                                            'Ride ended successfully! Scooty returned.',
+                                                            style: TextStyle(fontWeight: FontWeight.bold),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    backgroundColor: Color(0xFF2E7D32),
+                                                    duration: Duration(seconds: 3),
+                                                  ),
+                                                );
+                                              }
+                                              return;
+                                            }
+                                          }
+
+                                          setModalState(() {
+                                            isSubmitting = false;
+                                          });
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Text('Failed to complete ride. Please try again.'),
+                                                backgroundColor: Colors.red,
+                                              ),
+                                            );
+                                          }
+                                        } catch (e) {
+                                          setModalState(() {
+                                            isSubmitting = false;
+                                          });
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text('Error ending ride: $e'),
+                                                backgroundColor: Colors.red,
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      }
+                                    : null,
+                                borderRadius: BorderRadius.circular(14),
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  decoration: BoxDecoration(
+                                    gradient: canConfirmEnd
+                                        ? const LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            colors: [Color(0xFF4CAF50), Color(0xFF2E7D32), Color(0xFF1B5E20)],
+                                          )
+                                        : null,
+                                    color: canConfirmEnd ? null : const Color(0xFFD6C7B8),
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                      color: canConfirmEnd
+                                          ? Colors.white.withOpacity(0.35)
+                                          : Colors.transparent,
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: isSubmitting
+                                        ? const SizedBox(
+                                            width: 22,
+                                            height: 22,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : Text(
+                                            'Confirm & End Ride',
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              color: canConfirmEnd ? Colors.white : const Color(0xFF7D6C62),
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          if (!canConfirmEnd) ...[
+                            const SizedBox(height: 8),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (afterRideImages.isEmpty)
+                                  const Text(
+                                    '• Please upload at least 1 after-ride photo of the scooty',
+                                    style: TextStyle(fontSize: 11.5, color: Color(0xFFEF4444)),
+                                  ),
+                                if (isOverdue && !isExtraPaid)
+                                  Text(
+                                    '• Please pay the remaining amount (₹${extraAmount.toStringAsFixed(2)})',
+                                    style: const TextStyle(fontSize: 11.5, color: Color(0xFFEF4444)),
+                                  ),
+                              ],
+                            ),
+                          ],
+
+                          const SizedBox(height: 10),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

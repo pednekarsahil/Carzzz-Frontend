@@ -316,6 +316,11 @@ class CalculatePriceRequest(BaseModel):
     endDateTime: Optional[datetime] = None
     rentalHours: Optional[int] = None
 
+class CompleteRideRequest(BaseModel):
+    afterRidePhotos: Optional[List[str]] = []
+    extraAmount: Optional[float] = 0.0
+    extraPaymentId: Optional[str] = None
+
 # =============================================
 # CAR HOLD SYSTEM - 10 MINUTE HOLD
 # =============================================
@@ -866,6 +871,103 @@ async def get_my_rides(request: Request, user: dict = Depends(authenticate)):
                 "success": False,
                 "message": f"Error getting rides: {str(e)}"
             }
+        )
+
+@router.post("/rides/{order_id}/complete")
+async def complete_ride(
+    order_id: str,
+    request: Request,
+    data: CompleteRideRequest,
+    user: dict = Depends(authenticate)
+):
+    """Complete an active ride, save after-ride photos and any extra charges, and mark car available"""
+    try:
+        db = request.app.state.db
+        order_collection = db.orders
+        car_collection = db.partnercars
+        sio = getattr(request.app.state, 'sio', None)
+        
+        user_id = user.get('id')
+        logger.info(f"🏁 Completing ride {order_id} for user {user_id}")
+        
+        # Build query for order - supporting ObjectId or string
+        order = None
+        try:
+            if ObjectId.is_valid(order_id):
+                order = await order_collection.find_one({"$or": [{"_id": ObjectId(order_id)}, {"_id": order_id}]})
+            else:
+                order = await order_collection.find_one({"_id": order_id})
+        except Exception as e:
+            logger.warning(f"ObjectId lookup error: {e}")
+            order = await order_collection.find_one({"_id": order_id})
+            
+        if not order:
+            logger.error(f"❌ Order {order_id} not found")
+            return JSONResponse(
+                status_code=404,
+                content={"success": False, "message": "Ride / Order not found"}
+            )
+            
+        now = datetime.utcnow()
+        
+        # Update order with completed status, return/handover date, photos, extra charges
+        update_fields = {
+            "status": "completed",
+            "handoverDate": now,
+            "afterRidePhotos": data.afterRidePhotos or [],
+            "extraAmount": float(data.extraAmount or 0.0),
+            "updatedAt": now
+        }
+        if data.extraPaymentId:
+            update_fields["extraPaymentId"] = data.extraPaymentId
+            
+        await order_collection.update_one(
+            {"_id": order["_id"]},
+            {"$set": update_fields}
+        )
+        
+        # Free up the car
+        car_id = order.get("carId")
+        if car_id:
+            car_id_str = str(car_id)
+            car_filter = {"$or": [{"_id": ObjectId(car_id_str)}, {"_id": car_id_str}]} if ObjectId.is_valid(car_id_str) else {"_id": car_id_str}
+            await car_collection.update_one(
+                car_filter,
+                {
+                    "$set": {
+                        "status": "available",
+                        "heldBy": None,
+                        "heldUntil": None,
+                        "updatedAt": now
+                    }
+                }
+            )
+            
+            if sio:
+                await sio.emit("car_status_updated", {
+                    "carId": car_id_str,
+                    "status": "available"
+                })
+                await sio.emit("ride_completed", {
+                    "orderId": order_id,
+                    "carId": car_id_str,
+                    "userId": user_id
+                })
+        
+        logger.info(f"✅ Ride {order_id} ended successfully")
+        return JSONResponse(
+            status_code=200,
+            content={
+                "success": True,
+                "message": "Ride completed successfully and scooty returned!",
+                "orderId": order_id
+            }
+        )
+    except Exception as e:
+        logger.error(f"❌ Error completing ride {order_id}: {e}\n{traceback.format_exc()}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": f"Error completing ride: {str(e)}"}
         )
 
 @router.post("/check-availability")
