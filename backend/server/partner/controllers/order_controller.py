@@ -85,7 +85,8 @@ async def create_order(request: Request):
             )
         
         # Check car availability
-        car = await car_collection.find_one({"_id": car_id})
+        car_filter = {"$or": [{"_id": ObjectId(car_id)}, {"_id": car_id}]} if (isinstance(car_id, str) and ObjectId.is_valid(car_id)) else {"_id": car_id}
+        car = await car_collection.find_one(car_filter)
         if not car:
             return JSONResponse(
                 status_code=404,
@@ -145,7 +146,7 @@ async def create_order(request: Request):
         # Update car status to rented
         if car:
             await car_collection.update_one(
-                {"_id": car_id},
+                {"_id": car["_id"]},
                 {"$set": {"status": "rented", "updatedAt": datetime.utcnow()}}
             )
             

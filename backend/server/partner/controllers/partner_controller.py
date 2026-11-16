@@ -270,6 +270,12 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import httpx
+from bson import ObjectId
+
+def build_id_filter(doc_id):
+    if isinstance(doc_id, str) and ObjectId.is_valid(doc_id):
+        return {"$or": [{"_id": ObjectId(doc_id)}, {"_id": doc_id}]}
+    return {"_id": doc_id}
 
 DEFAULT_JWT_SECRET = "your_super_secret_jwt_key_change_this_in_production_123456789"
 if not os.getenv("JWT_SECRET"):
@@ -1272,6 +1278,21 @@ async def get_all_cars(request: Request):
         hourly_rate = car.get('hourlyRate') or round(daily_rate / 8)
         half_day_rate = car.get('halfDayRate') or round(daily_rate * 0.6)
         
+        reviews = car.get('reviews', [])
+        formatted_reviews = []
+        for r in reviews:
+            formatted_reviews.append({
+                "id": str(r.get('_id')) if '_id' in r else None,
+                "userName": r.get('userName'),
+                "rating": r.get('rating'),
+                "comment": r.get('comment'),
+                "createdAt": r.get('createdAt').isoformat() if r.get('createdAt') else None
+            })
+
+        calculated_rating = car.get('rating', 0)
+        if (calculated_rating == 0 or calculated_rating is None) and formatted_reviews:
+            calculated_rating = round(sum(float(r.get('rating', 0)) for r in formatted_reviews) / len(formatted_reviews), 1)
+
         formatted_cars.append({
             "_id": str(car['_id']),
             "id": str(car['_id']),
@@ -1285,8 +1306,9 @@ async def get_all_cars(request: Request):
             "minRentalHours": car.get('minRentalHours', 1),
             "maxRentalHours": car.get('maxRentalHours', 72),
             "status": car.get('status'),
-            "rating": car.get('rating', 0),
-            "reviewCount": car.get('reviewCount', 0),
+            "rating": calculated_rating,
+            "reviewCount": car.get('reviewCount', len(formatted_reviews)),
+            "reviews": formatted_reviews,
             "location": car.get('location'),
             "images": car.get('images', []),
             "description": car.get('description', 'No description available'),
@@ -1481,12 +1503,10 @@ async def update_partner_car(request: Request, car_id: str):
     car_collection = db.partnercars
     
     # Find car and verify ownership
-    car = await car_collection.find_one({
-        "_id": car_id,
-        "partnerId": partner_id
-    })
+    car_filter = build_id_filter(car_id)
+    car = await car_collection.find_one(car_filter)
     
-    if not car:
+    if not car or str(car.get('partnerId')) != str(partner_id):
         return JSONResponse(
             status_code=404,
             content={
@@ -1500,11 +1520,11 @@ async def update_partner_car(request: Request, car_id: str):
     update_data["updatedAt"] = datetime.utcnow()
     
     result = await car_collection.update_one(
-        {"_id": car_id},
+        {"_id": car["_id"]},
         {"$set": update_data}
     )
     
-    updated_car = await car_collection.find_one({"_id": car_id})
+    updated_car = await car_collection.find_one({"_id": car["_id"]})
     
     return JSONResponse(
         status_code=200,
@@ -1545,12 +1565,10 @@ async def delete_partner_car(request: Request, car_id: str):
     partner_collection = db.partners
     
     # Find car and verify ownership
-    car = await car_collection.find_one({
-        "_id": car_id,
-        "partnerId": partner_id
-    })
+    car_filter = build_id_filter(car_id)
+    car = await car_collection.find_one(car_filter)
     
-    if not car:
+    if not car or str(car.get('partnerId')) != str(partner_id):
         return JSONResponse(
             status_code=404,
             content={
@@ -1560,7 +1578,7 @@ async def delete_partner_car(request: Request, car_id: str):
         )
     
     # Delete car
-    await car_collection.delete_one({"_id": car_id})
+    await car_collection.delete_one({"_id": car["_id"]})
     
     # Remove car from partner's cars array
     await partner_collection.update_one(
@@ -1646,6 +1664,21 @@ async def get_nearby_cars(request: Request):
         if distance <= radius:
             partner = await partner_collection.find_one({"_id": car.get('partnerId')})
             
+            reviews = car.get('reviews', [])
+            formatted_reviews = []
+            for r in reviews:
+                formatted_reviews.append({
+                    "id": str(r.get('_id')) if '_id' in r else None,
+                    "userName": r.get('userName'),
+                    "rating": r.get('rating'),
+                    "comment": r.get('comment'),
+                    "createdAt": r.get('createdAt').isoformat() if r.get('createdAt') else None
+                })
+
+            calculated_rating = car.get('rating', 0)
+            if (calculated_rating == 0 or calculated_rating is None) and formatted_reviews:
+                calculated_rating = round(sum(float(r.get('rating', 0)) for r in formatted_reviews) / len(formatted_reviews), 1)
+
             nearby_cars.append({
                 "_id": str(car['_id']),
                 "model": car.get('model'),
@@ -1654,8 +1687,9 @@ async def get_nearby_cars(request: Request):
                 "fuelType": car.get('fuelType'),
                 "dailyRate": car.get('dailyRate'),
                 "status": car.get('status'),
-                "rating": car.get('rating', 0),
-                "reviewCount": car.get('reviewCount', 0),
+                "rating": calculated_rating,
+                "reviewCount": car.get('reviewCount', len(formatted_reviews)),
+                "reviews": formatted_reviews,
                 "location": car.get('location'),
                 "description": car.get('description', ''),
                 "images": car.get('images', []),
@@ -1707,12 +1741,10 @@ async def update_car_status(request: Request, car_id: str):
     partner_collection = db.partners
     
     # Find car and verify ownership
-    car = await car_collection.find_one({
-        "_id": car_id,
-        "partnerId": partner_id
-    })
+    car_filter = build_id_filter(car_id)
+    car = await car_collection.find_one(car_filter)
     
-    if not car:
+    if not car or str(car.get('partnerId')) != str(partner_id):
         return JSONResponse(
             status_code=404,
             content={
@@ -1725,7 +1757,7 @@ async def update_car_status(request: Request, car_id: str):
     
     # Update status
     await car_collection.update_one(
-        {"_id": car_id},
+        {"_id": car["_id"]},
         {"$set": {"status": status, "updatedAt": datetime.utcnow()}}
     )
     
@@ -1942,20 +1974,26 @@ async def add_car_review(request: Request, car_id: str):
     user_id = user.get('id')
     user_name = user.get('fullname', 'User')
     
-    body = await request.json()
-    rating = body.get('rating')
+    try:
+        body = await request.json()
+    except Exception:
+        body = getattr(request, '_body', {})
+    if not isinstance(body, dict):
+        body = getattr(request, '_body', {})
+
+    raw_rating = body.get('rating')
     comment = body.get('comment')
     
-    if not rating or rating < 1 or rating > 5:
-        return JSONResponse(
-            status_code=400,
-            content={
-                "success": False,
-                "message": "Rating must be between 1 and 5"
-            }
-        )
+    try:
+        rating = float(raw_rating) if raw_rating is not None else 5.0
+        if rating < 1.0:
+            rating = 1.0
+        elif rating > 5.0:
+            rating = 5.0
+    except (ValueError, TypeError):
+        rating = 5.0
     
-    if not comment or not comment.strip():
+    if not comment or not str(comment).strip():
         return JSONResponse(
             status_code=400,
             content={
@@ -1967,8 +2005,9 @@ async def add_car_review(request: Request, car_id: str):
     db = request.app.state.db
     car_collection = db.partnercars
     
-    # Find the car
-    car = await car_collection.find_one({"_id": car_id})
+    # Find the car (supporting both ObjectId and string ID)
+    car_filter = build_id_filter(car_id)
+    car = await car_collection.find_one(car_filter)
     
     if not car:
         return JSONResponse(
@@ -1981,35 +2020,30 @@ async def add_car_review(request: Request, car_id: str):
     
     # Check if user already reviewed this car
     reviews = car.get('reviews', [])
-    existing_review = next((r for r in reviews if r.get('userId') == user_id), None)
+    existing_index = next((i for i, r in enumerate(reviews) if r.get('userId') == user_id), None)
     
-    if existing_review:
-        return JSONResponse(
-            status_code=400,
-            content={
-                "success": False,
-                "message": "You have already reviewed this car"
-            }
-        )
-    
-    # Add new review
     new_review = {
         "userId": user_id,
         "userName": user_name,
         "rating": float(rating),
-        "comment": comment.strip(),
+        "comment": str(comment).strip(),
         "createdAt": datetime.utcnow()
     }
     
-    reviews.append(new_review)
+    if existing_index is not None:
+        reviews[existing_index] = new_review
+        saved_review = new_review
+    else:
+        reviews.append(new_review)
+        saved_review = new_review
     
     # Calculate new average rating
-    total_rating = sum(r['rating'] for r in reviews)
-    avg_rating = total_rating / len(reviews) if reviews else 0
+    total_rating = sum(float(r.get('rating', 5.0)) for r in reviews)
+    avg_rating = round(total_rating / len(reviews), 1) if reviews else 0.0
     
-    # Update car
+    # Update car using exact document _id
     await car_collection.update_one(
-        {"_id": car_id},
+        {"_id": car["_id"]},
         {
             "$set": {
                 "reviews": reviews,
@@ -2019,8 +2053,6 @@ async def add_car_review(request: Request, car_id: str):
             }
         }
     )
-    
-    saved_review = reviews[-1]
     
     # Emit socket event for real-time update
     if sio:
@@ -2063,8 +2095,9 @@ async def get_car_reviews(request: Request, car_id: str):
     db = request.app.state.db
     car_collection = db.partnercars
     
+    car_filter = build_id_filter(car_id)
     car = await car_collection.find_one(
-        {"_id": car_id},
+        car_filter,
         {"reviews": 1, "rating": 1, "reviewCount": 1}
     )
     
@@ -2091,13 +2124,17 @@ async def get_car_reviews(request: Request, car_id: str):
             "createdAt": r.get('createdAt').isoformat() if r.get('createdAt') else None
         })
     
+    calculated_rating = car.get('rating', 0)
+    if (calculated_rating == 0 or calculated_rating is None) and formatted_reviews:
+        calculated_rating = round(sum(float(r.get('rating', 0)) for r in formatted_reviews) / len(formatted_reviews), 1)
+
     return JSONResponse(
         status_code=200,
         content={
             "success": True,
             "reviews": formatted_reviews,
-            "rating": car.get('rating', 0),
-            "reviewCount": car.get('reviewCount', 0)
+            "rating": calculated_rating,
+            "reviewCount": car.get('reviewCount', len(formatted_reviews))
         }
     )
 
