@@ -1530,6 +1530,108 @@ class _RidersDashboardState extends State<RidersDashboard> {
     _silentRefreshcars();
   }
 
+  Future<bool> _checkUserDocumentsUploaded() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String userId = widget.userData['id']?.toString() ?? widget.userData['_id']?.toString() ?? '';
+
+      final bool hasPan = (prefs.getBool('has_uploaded_pan_$userId') ?? prefs.getBool('has_uploaded_pan') ?? false) ||
+          (prefs.getString('pan_card_image_$userId')?.isNotEmpty ?? false) ||
+          (prefs.getString('pan_card_image')?.isNotEmpty ?? false) ||
+          (widget.userData['hasUploadedPan'] == true) ||
+          (widget.userData['panCard'] != null && widget.userData['panCard'].toString().isNotEmpty) ||
+          (widget.userData['panCardImage'] != null && widget.userData['panCardImage'].toString().isNotEmpty);
+
+      final bool hasDriving = (prefs.getBool('has_uploaded_driving_$userId') ?? prefs.getBool('has_uploaded_driving') ?? false) ||
+          (prefs.getString('driving_licence_image_$userId')?.isNotEmpty ?? false) ||
+          (prefs.getString('driving_licence_image')?.isNotEmpty ?? false) ||
+          (widget.userData['hasUploadedDrivingLicence'] == true) ||
+          (widget.userData['drivingLicence'] != null && widget.userData['drivingLicence'].toString().isNotEmpty) ||
+          (widget.userData['drivingLicenceImage'] != null && widget.userData['drivingLicenceImage'].toString().isNotEmpty);
+
+      return hasPan && hasDriving;
+    } catch (e) {
+      print('Error checking user documents: $e');
+      return false;
+    }
+  }
+
+  void _showDocumentRequiredDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        backgroundColor: const Color(0xFFFAF7F4),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF5A1F).withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.assignment_late_rounded,
+                color: Color(0xFFFF5A1F),
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text(
+                'Documents Required',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2B1B12),
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Before renting a vehicle, you must upload both your PAN Card and Driving Licence for verification in Profile > Personal Information.',
+          style: TextStyle(
+            fontSize: 14,
+            color: Color(0xFF7D6C62),
+            height: 1.4,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Color(0xFF7D6C62)),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => RiderPersonalInformation(
+                    userData: widget.userData,
+                    isDarkMode: false,
+                  ),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF5A1F),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: const Text('Upload Documents'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showcarDetailPopup(Map<String, dynamic> car) {
     _activeDetailCarId = car['id']?.toString();
     _activeDetailCar = car;
@@ -1927,6 +2029,11 @@ class _RidersDashboardState extends State<RidersDashboard> {
                           padding: const EdgeInsets.all(20),
                           child: GestureDetector(
                             onTap: () async {
+                              final bool hasDocs = await _checkUserDocumentsUploaded();
+                              if (!hasDocs) {
+                                _showDocumentRequiredDialog();
+                                return;
+                              }
                               Navigator.pop(context);
                               await _reservecar(car['id']);
                               final result = await Navigator.push(
@@ -4387,8 +4494,8 @@ class _RidersDashboardState extends State<RidersDashboard> {
     required Map<String, dynamic> carData,
     bool isAlternate = false,
   }) {
-    final Color cardBg = isAlternate ? const Color(0xFFF7E9DF) : const Color(0xFFFAF7F4);
-    final Color innerBg = isAlternate ? const Color(0xFFFAF7F4) : const Color(0xFFF7E9DF);
+    final Color cardBg = const Color(0xFFF7E9DF);
+    final Color innerBg = const Color(0xFFFAF7F4);
 
     final reviews = carData['reviews'] is List<CarReview> ? carData['reviews'] as List<CarReview> : <CarReview>[];
     double displayRating = rating;
@@ -4565,7 +4672,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
               end: Alignment.bottomCenter,
               colors: [
                 Color(0xFFFFFFFF),
-                Color(0xFFFAF7F4),
+                Color(0xFFF7E9DF), // BMW X6 card color
                 Color(0xFFF3ECE4),
               ],
               stops: [0.0, 0.45, 1.0],
@@ -4576,97 +4683,124 @@ class _RidersDashboardState extends State<RidersDashboard> {
               width: 1.2,
             ),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF7E9DF),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: AppIconOrImage(
-                  icon: Icons.directions_car,
-                  imageUrl: (carData['photos'] is List && (carData['photos'] as List).isNotEmpty)
-                      ? (carData['photos'] as List).first.toString()
-                      : null,
-                  iconColor: const Color(0xFFFF5A1F),
-                  size: 30,
-                  borderRadius: BorderRadius.circular(8),
+              // Car Photo Container (Positioned ABOVE the car name text)
+              Container(
+                width: double.infinity,
+                height: 140,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAF7F4), // BMW X6 inner image container color
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFFE5D7C9),
+                  ),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: Center(
+                          child: AppIconOrImage(
+                            icon: Icons.directions_car,
+                            imageUrl: (carData['photos'] is List && (carData['photos'] as List).isNotEmpty)
+                                ? (carData['photos'] as List).first.toString()
+                                : null,
+                            iconColor: const Color(0xFFFF5A1F),
+                            size: 65,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                      if (_getOfferText(carData['offer']).isNotEmpty)
+                        Positioned(
+                          top: 8,
+                          left: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFF5A1F),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              _getOfferText(carData['offer']),
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
+              const SizedBox(height: 10),
+
+              // Car Details (Name, rating, distance, and price)
+              Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          carData['name'],
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF2B1B12),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.star, size: 14, color: Color(0xFFFF5A1F)),
+                            const SizedBox(width: 4),
+                            Text(
+                              displayRating.toStringAsFixed(1),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF2B1B12),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Icon(Icons.location_on, size: 12, color: Color(0xFF7D6C62)),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${(carData['distance'] as double).toStringAsFixed(1)} km',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF7D6C62),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                   Text(
-                    carData['name'],
+                    carData['priceText'],
                     style: const TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.bold,
                       color: Color(0xFF2B1B12),
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(Icons.star, size: 14, color: Color(0xFFFF5A1F)),
-                      const SizedBox(width: 4),
-                      Text(
-                        displayRating.toStringAsFixed(1),
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF2B1B12)),
-                      ),
-                      const SizedBox(width: 8),
-                      const Icon(Icons.location_on, size: 12, color: Color(0xFF7D6C62)),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${(carData['distance'] as double).toStringAsFixed(1)} km',
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF7D6C62)),
-                      ),
-                    ],
-                  ),
                 ],
               ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                if (_getOfferText(carData['offer']).isNotEmpty)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 4),
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFF5A1F),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      _getOfferText(carData['offer']),
-                      style: const TextStyle(
-                        fontSize: 10,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                Text(
-                  carData['priceText'],
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2B1B12),
-                  ),
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildRidesTab() {
     if (_isLoadingRides) {

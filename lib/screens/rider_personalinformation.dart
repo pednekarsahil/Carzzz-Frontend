@@ -4,6 +4,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/app_icon_or_image.dart';
 
 class RiderPersonalInformation extends StatefulWidget {
@@ -33,6 +34,10 @@ class _RiderPersonalInformationState extends State<RiderPersonalInformation> {
   File? _panCardImage;
   File? _drivingLicenceImage;
 
+  // Verification states
+  bool _hasUploadedPan = false;
+  bool _hasUploadedDriving = false;
+
   // Image picker instance
   final ImagePicker _picker = ImagePicker();
 
@@ -49,6 +54,40 @@ class _RiderPersonalInformationState extends State<RiderPersonalInformation> {
     _emailController.text = widget.userData['email'] ?? '';
     _phoneController.text = widget.userData['phone'] ?? '';
     _addressController.text = widget.userData['address'] ?? '';
+    _loadSavedDocuments();
+  }
+
+  Future<void> _loadSavedDocuments() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String userId = widget.userData['id']?.toString() ?? widget.userData['_id']?.toString() ?? '';
+
+      final panPath = prefs.getString('pan_card_image_$userId') ?? prefs.getString('pan_card_image');
+      final drivingPath = prefs.getString('driving_licence_image_$userId') ?? prefs.getString('driving_licence_image');
+
+      final bool panUploaded = (prefs.getBool('has_uploaded_pan_$userId') ?? prefs.getBool('has_uploaded_pan') ?? false) ||
+          (widget.userData['hasUploadedPan'] == true);
+      final bool drivingUploaded = (prefs.getBool('has_uploaded_driving_$userId') ?? prefs.getBool('has_uploaded_driving') ?? false) ||
+          (widget.userData['hasUploadedDrivingLicence'] == true);
+
+      if (mounted) {
+        setState(() {
+          _hasUploadedPan = panUploaded;
+          _hasUploadedDriving = drivingUploaded;
+
+          if (panPath != null && panPath.isNotEmpty && File(panPath).existsSync()) {
+            _panCardImage = File(panPath);
+            _hasUploadedPan = true;
+          }
+          if (drivingPath != null && drivingPath.isNotEmpty && File(drivingPath).existsSync()) {
+            _drivingLicenceImage = File(drivingPath);
+            _hasUploadedDriving = true;
+          }
+        });
+      }
+    } catch (e) {
+      print('Error loading saved documents: $e');
+    }
   }
 
   @override
@@ -70,30 +109,55 @@ class _RiderPersonalInformationState extends State<RiderPersonalInformation> {
       );
 
       if (pickedFile != null) {
+        final prefs = await SharedPreferences.getInstance();
+        final String userId = widget.userData['id']?.toString() ?? widget.userData['_id']?.toString() ?? '';
+
         setState(() {
           if (type == 'pan') {
             _panCardImage = File(pickedFile.path);
+            _hasUploadedPan = true;
           } else {
             _drivingLicenceImage = File(pickedFile.path);
+            _hasUploadedDriving = true;
           }
         });
 
+        if (type == 'pan') {
+          await prefs.setString('pan_card_image_$userId', pickedFile.path);
+          await prefs.setString('pan_card_image', pickedFile.path);
+          await prefs.setBool('has_uploaded_pan_$userId', true);
+          await prefs.setBool('has_uploaded_pan', true);
+          widget.userData['hasUploadedPan'] = true;
+          widget.userData['panCardImage'] = pickedFile.path;
+        } else {
+          await prefs.setString('driving_licence_image_$userId', pickedFile.path);
+          await prefs.setString('driving_licence_image', pickedFile.path);
+          await prefs.setBool('has_uploaded_driving_$userId', true);
+          await prefs.setBool('has_uploaded_driving', true);
+          widget.userData['hasUploadedDrivingLicence'] = true;
+          widget.userData['drivingLicenceImage'] = pickedFile.path;
+        }
+
         // Show success message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${type == 'pan' ? 'PAN Card' : 'Driving Licence'} selected & saved!'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${type == 'pan' ? 'PAN Card' : 'Driving Licence'} image selected'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
+            content: Text('Error picking image: $e'),
+            backgroundColor: Colors.red,
           ),
         );
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error picking image: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
     }
   }
 
@@ -106,24 +170,50 @@ class _RiderPersonalInformationState extends State<RiderPersonalInformation> {
       }
     });
 
-    // Simulate upload delay (replace with actual upload logic)
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String userId = widget.userData['id']?.toString() ?? widget.userData['_id']?.toString() ?? '';
 
-    setState(() {
-      if (type == 'pan') {
-        _isUploadingPan = false;
-      } else {
-        _isUploadingDriving = false;
+      if (type == 'pan' && _panCardImage != null) {
+        await prefs.setString('pan_card_image_$userId', _panCardImage!.path);
+        await prefs.setString('pan_card_image', _panCardImage!.path);
+        await prefs.setBool('has_uploaded_pan_$userId', true);
+        await prefs.setBool('has_uploaded_pan', true);
+        widget.userData['hasUploadedPan'] = true;
+        widget.userData['panCardImage'] = _panCardImage!.path;
+      } else if (type == 'driving' && _drivingLicenceImage != null) {
+        await prefs.setString('driving_licence_image_$userId', _drivingLicenceImage!.path);
+        await prefs.setString('driving_licence_image', _drivingLicenceImage!.path);
+        await prefs.setBool('has_uploaded_driving_$userId', true);
+        await prefs.setBool('has_uploaded_driving', true);
+        widget.userData['hasUploadedDrivingLicence'] = true;
+        widget.userData['drivingLicenceImage'] = _drivingLicenceImage!.path;
       }
-    });
+    } catch (e) {
+      print('Error saving upload to prefs: $e');
+    }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${type == 'pan' ? 'PAN Card' : 'Driving Licence'} uploaded successfully!'),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    await Future.delayed(const Duration(milliseconds: 600));
+
+    if (mounted) {
+      setState(() {
+        if (type == 'pan') {
+          _isUploadingPan = false;
+          _hasUploadedPan = true;
+        } else {
+          _isUploadingDriving = false;
+          _hasUploadedDriving = true;
+        }
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${type == 'pan' ? 'PAN Card' : 'Driving Licence'} uploaded & verified successfully!'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   Future<void> _savePersonalInformation() async {
@@ -132,25 +222,58 @@ class _RiderPersonalInformationState extends State<RiderPersonalInformation> {
         _isSaving = true;
       });
 
-      // Simulate save delay (replace with actual API call)
-      await Future.delayed(const Duration(seconds: 1));
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final String userId = widget.userData['id']?.toString() ?? widget.userData['_id']?.toString() ?? '';
 
-      // Here you would typically send the data to your backend
-      // For now, just show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Personal information saved successfully!'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
+        await prefs.setString('user_fullname_$userId', _fullNameController.text.trim());
+        await prefs.setString('user_email_$userId', _emailController.text.trim());
+        await prefs.setString('user_phone_$userId', _phoneController.text.trim());
+        await prefs.setString('user_address_$userId', _addressController.text.trim());
 
-      setState(() {
-        _isSaving = false;
-      });
+        widget.userData['fullname'] = _fullNameController.text.trim();
+        widget.userData['email'] = _emailController.text.trim();
+        widget.userData['phone'] = _phoneController.text.trim();
+        widget.userData['address'] = _addressController.text.trim();
 
-      // Navigate back after save
-      Navigator.pop(context);
+        if (_panCardImage != null) {
+          await prefs.setString('pan_card_image_$userId', _panCardImage!.path);
+          await prefs.setString('pan_card_image', _panCardImage!.path);
+          await prefs.setBool('has_uploaded_pan_$userId', true);
+          await prefs.setBool('has_uploaded_pan', true);
+          widget.userData['hasUploadedPan'] = true;
+          widget.userData['panCardImage'] = _panCardImage!.path;
+        }
+
+        if (_drivingLicenceImage != null) {
+          await prefs.setString('driving_licence_image_$userId', _drivingLicenceImage!.path);
+          await prefs.setString('driving_licence_image', _drivingLicenceImage!.path);
+          await prefs.setBool('has_uploaded_driving_$userId', true);
+          await prefs.setBool('has_uploaded_driving', true);
+          widget.userData['hasUploadedDrivingLicence'] = true;
+          widget.userData['drivingLicenceImage'] = _drivingLicenceImage!.path;
+        }
+      } catch (e) {
+        print('Error saving personal information: $e');
+      }
+
+      await Future.delayed(const Duration(milliseconds: 600));
+
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Personal information & documents saved successfully!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+
+        Navigator.pop(context, true);
+      }
     }
   }
 
@@ -379,6 +502,7 @@ class _RiderPersonalInformationState extends State<RiderPersonalInformation> {
                       icon: Icons.credit_card,
                       iconAsset: null, // Option to pass a PNG image asset
                       imageFile: _panCardImage,
+                      isUploaded: _hasUploadedPan,
                       isLoading: _isUploadingPan,
                       onPickImage: () => _pickImage('pan'),
                       onUpload: _panCardImage != null ? () => _uploadImage('pan') : null,
@@ -393,6 +517,7 @@ class _RiderPersonalInformationState extends State<RiderPersonalInformation> {
                       icon: Icons.drive_eta,
                       iconAsset: null, // Option to pass a PNG image asset (e.g. 'assets/drivewithuslogo.png')
                       imageFile: _drivingLicenceImage,
+                      isUploaded: _hasUploadedDriving,
                       isLoading: _isUploadingDriving,
                       onPickImage: () => _pickImage('driving'),
                       onUpload: _drivingLicenceImage != null ? () => _uploadImage('driving') : null,
@@ -458,6 +583,7 @@ class _RiderPersonalInformationState extends State<RiderPersonalInformation> {
     double? iconOffsetX,
     double? iconOffsetY,
     required File? imageFile,
+    bool isUploaded = false,
     required bool isLoading,
     required VoidCallback onPickImage,
     VoidCallback? onUpload,
@@ -501,6 +627,30 @@ class _RiderPersonalInformationState extends State<RiderPersonalInformation> {
                   color: Color(0xFF2B1B12),
                 ),
               ),
+              const Spacer(),
+              if (isUploaded)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDCFCE7),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFF86EFAC)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.check_circle, size: 12, color: Color(0xFF16A34A)),
+                      SizedBox(width: 4),
+                      Text(
+                        'Verified',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF166534),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 12),
@@ -609,7 +759,7 @@ class _RiderPersonalInformationState extends State<RiderPersonalInformation> {
                         color: Colors.white,
                       ),
                     )
-                        : const Text('Upload'),
+                        : Text(isUploaded ? 'Re-upload' : 'Upload'),
                   ),
                 ),
               ),
