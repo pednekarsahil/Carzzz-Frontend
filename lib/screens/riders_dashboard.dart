@@ -162,6 +162,11 @@ class _RidersDashboardState extends State<RidersDashboard> {
   List<Map<String, dynamic>> _nearbycars = [];
   List<Map<String, dynamic>> _filteredcars = [];
 
+  // Active car detail tracking for live real-time review updates
+  StateSetter? _activeCarDetailSetState;
+  String? _activeDetailCarId;
+  Map<String, dynamic>? _activeDetailCar;
+
   Timer? _autoRefreshTimer;
   Timer? _silentRefreshTimer;
 
@@ -311,7 +316,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
           }).toList();
 
           final processedcars = availablecars.map((car) {
-            double ratingValue = 4.0;
+            double ratingValue = 0.0;
             if (car['rating'] != null) {
               if (car['rating'] is int) {
                 ratingValue = (car['rating'] as int).toDouble();
@@ -325,10 +330,18 @@ class _RidersDashboardState extends State<RidersDashboard> {
             List<CarReview> reviews = [];
             if (car['reviews'] != null && car['reviews'] is List) {
               reviews = (car['reviews'] as List)
-                  .map((r) => CarReview.fromJson(r))
+                  .map((r) {
+                    if (r is CarReview) return r;
+                    return CarReview.fromJson(r as Map<String, dynamic>);
+                  })
                   .toList();
-            } else {
+            } else if (ratingValue > 0) {
               reviews = _getSampleReviews(ratingValue);
+            }
+
+            if (reviews.isNotEmpty) {
+              final double totalStars = reviews.fold<double>(0.0, (sum, r) => sum + r.rating);
+              ratingValue = double.parse((totalStars / reviews.length).toStringAsFixed(1));
             }
 
             dynamic offerValue = car['offer'] ?? car['discountPercentage'] ?? car['discount'];
@@ -553,7 +566,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
           print('📊 Available cars count: ${availablecars.length}');
 
           _allcars = availablecars.map((car) {
-            double ratingValue = 4.0;
+            double ratingValue = 0.0;
             if (car['rating'] != null) {
               if (car['rating'] is int) {
                 ratingValue = (car['rating'] as int).toDouble();
@@ -567,10 +580,18 @@ class _RidersDashboardState extends State<RidersDashboard> {
             List<CarReview> reviews = [];
             if (car['reviews'] != null && car['reviews'] is List) {
               reviews = (car['reviews'] as List)
-                  .map((r) => CarReview.fromJson(r))
+                  .map((r) {
+                    if (r is CarReview) return r;
+                    return CarReview.fromJson(r as Map<String, dynamic>);
+                  })
                   .toList();
-            } else {
+            } else if (ratingValue > 0) {
               reviews = _getSampleReviews(ratingValue);
+            }
+
+            if (reviews.isNotEmpty) {
+              final double totalStars = reviews.fold<double>(0.0, (sum, r) => sum + r.rating);
+              ratingValue = double.parse((totalStars / reviews.length).toStringAsFixed(1));
             }
 
             dynamic offerValue = car['offer'] ?? car['discountPercentage'] ?? car['discount'];
@@ -1052,6 +1073,62 @@ class _RidersDashboardState extends State<RidersDashboard> {
     );
   }
 
+  Future<void> _fetchCarReviews(String carId, [StateSetter? setStatePopup]) async {
+    if (carId.isEmpty) return;
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/partner/cars/$carId/reviews'),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['reviews'] != null) {
+          final List<dynamic> rawReviews = data['reviews'];
+          final List<CarReview> fetchedReviews = rawReviews
+              .map((r) => CarReview.fromJson(r as Map<String, dynamic>))
+              .toList();
+
+          double computedRating = 0.0;
+          if (fetchedReviews.isNotEmpty) {
+            final double sum = fetchedReviews.fold<double>(0.0, (acc, r) => acc + r.rating);
+            computedRating = double.parse((sum / fetchedReviews.length).toStringAsFixed(1));
+          } else if (data['rating'] != null && (data['rating'] as num) > 0) {
+            computedRating = (data['rating'] as num).toDouble();
+          }
+
+          void updateCarInList(List<Map<String, dynamic>> list) {
+            final idx = list.indexWhere((c) => c['id']?.toString() == carId);
+            if (idx != -1) {
+              list[idx]['reviews'] = fetchedReviews;
+              list[idx]['rating'] = computedRating;
+              list[idx]['reviewCount'] = fetchedReviews.length;
+            }
+          }
+
+          if (mounted) {
+            setState(() {
+              updateCarInList(_allcars);
+              updateCarInList(_nearbycars);
+              updateCarInList(_filteredcars);
+              if (_activeDetailCar != null && _activeDetailCar!['id']?.toString() == carId) {
+                _activeDetailCar!['reviews'] = fetchedReviews;
+                _activeDetailCar!['rating'] = computedRating;
+                _activeDetailCar!['reviewCount'] = fetchedReviews.length;
+              }
+            });
+            if (setStatePopup != null) {
+              setStatePopup(() {});
+            } else if (_activeCarDetailSetState != null) {
+              _activeCarDetailSetState!(() {});
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('Error fetching car reviews: $e');
+    }
+  }
+
   Future<void> _addReview(Map<String, dynamic> car, String userName, double rating, String comment) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -1063,9 +1140,10 @@ class _RidersDashboardState extends State<RidersDashboard> {
       }
 
       _showSnackBar('Posting your review...');
+      final String carId = car['id']?.toString() ?? '';
 
       final response = await http.post(
-        Uri.parse('$_baseUrl/partner/cars/${car['id']}/review'),
+        Uri.parse('$_baseUrl/partner/cars/$carId/review'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -1079,50 +1157,69 @@ class _RidersDashboardState extends State<RidersDashboard> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success'] == true) {
+          final reviewJson = data['review'] ?? {};
           final newReview = CarReview(
-            id: data['review']['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
-            userName: data['review']['userName'] ?? userName,
-            rating: rating,
-            comment: comment,
-            createdAt: DateTime.now(),
+            id: reviewJson['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
+            userName: reviewJson['userName'] ?? userName,
+            rating: (reviewJson['rating'] as num?)?.toDouble() ?? rating,
+            comment: reviewJson['comment'] ?? comment,
+            createdAt: reviewJson['createdAt'] != null
+                ? DateTime.tryParse(reviewJson['createdAt']) ?? DateTime.now()
+                : DateTime.now(),
           );
 
-          setState(() {
-            final carIndex = _allcars.indexWhere((b) => b['id'] == car['id']);
+          void updateCarInList(List<Map<String, dynamic>> list) {
+            final carIndex = list.indexWhere((b) => b['id']?.toString() == carId);
             if (carIndex != -1) {
-              final reviewsList = List<CarReview>.from(_allcars[carIndex]['reviews']);
-              reviewsList.insert(0, newReview);
-              _allcars[carIndex]['reviews'] = reviewsList;
-              if (rating > 0) {
-                final totalRating = reviewsList.fold<double>(0, (sum, r) => sum + r.rating);
-                _allcars[carIndex]['rating'] = totalRating / reviewsList.length;
+              final reviewsList = List<CarReview>.from(list[carIndex]['reviews'] ?? []);
+              final existingIndex = reviewsList.indexWhere((r) => r.id == newReview.id || r.userName == newReview.userName);
+              if (existingIndex != -1) {
+                reviewsList[existingIndex] = newReview;
+              } else {
+                reviewsList.insert(0, newReview);
               }
+              list[carIndex]['reviews'] = reviewsList;
+              final totalRating = reviewsList.fold<double>(0, (sum, r) => sum + r.rating);
+              final calculatedRating = reviewsList.isNotEmpty
+                  ? double.parse((totalRating / reviewsList.length).toStringAsFixed(1))
+                  : rating;
+              list[carIndex]['rating'] = calculatedRating;
+              list[carIndex]['reviewCount'] = reviewsList.length;
             }
+          }
 
-            final nearbyIndex = _nearbycars.indexWhere((b) => b['id'] == car['id']);
-            if (nearbyIndex != -1) {
-              final reviewsList = List<CarReview>.from(_nearbycars[nearbyIndex]['reviews']);
-              reviewsList.insert(0, newReview);
-              _nearbycars[nearbyIndex]['reviews'] = reviewsList;
-              if (rating > 0) {
-                final totalRating = reviewsList.fold<double>(0, (sum, r) => sum + r.rating);
-                _nearbycars[nearbyIndex]['rating'] = totalRating / reviewsList.length;
-              }
-            }
+          setState(() {
+            updateCarInList(_allcars);
+            updateCarInList(_nearbycars);
+            updateCarInList(_filteredcars);
 
-            final filteredIndex = _filteredcars.indexWhere((b) => b['id'] == car['id']);
-            if (filteredIndex != -1) {
-              final reviewsList = List<CarReview>.from(_filteredcars[filteredIndex]['reviews']);
-              reviewsList.insert(0, newReview);
-              _filteredcars[filteredIndex]['reviews'] = reviewsList;
-              if (rating > 0) {
-                final totalRating = reviewsList.fold<double>(0, (sum, r) => sum + r.rating);
-                _filteredcars[filteredIndex]['rating'] = totalRating / reviewsList.length;
+            if (_activeDetailCar != null && _activeDetailCar!['id']?.toString() == carId) {
+              final reviewsList = List<CarReview>.from(_activeDetailCar!['reviews'] ?? []);
+              final existingIndex = reviewsList.indexWhere((r) => r.id == newReview.id || r.userName == newReview.userName);
+              if (existingIndex != -1) {
+                reviewsList[existingIndex] = newReview;
+              } else {
+                reviewsList.insert(0, newReview);
               }
+              _activeDetailCar!['reviews'] = reviewsList;
+              final totalRating = reviewsList.fold<double>(0, (sum, r) => sum + r.rating);
+              final calculatedRating = reviewsList.isNotEmpty
+                  ? double.parse((totalRating / reviewsList.length).toStringAsFixed(1))
+                  : rating;
+              _activeDetailCar!['rating'] = calculatedRating;
+              _activeDetailCar!['reviewCount'] = reviewsList.length;
             }
           });
 
+          // Instantly refresh open popup in real-time
+          if (_activeCarDetailSetState != null) {
+            _activeCarDetailSetState!(() {});
+          }
+
           _showSnackBar('Review posted successfully!');
+
+          // Background sync with server
+          _fetchCarReviews(carId);
         } else {
           _showSnackBar(data['message'] ?? 'Failed to add review');
         }
@@ -1138,41 +1235,68 @@ class _RidersDashboardState extends State<RidersDashboard> {
 
   // ========== FIXED METHOD - Changed variable name from 'CarReview' to 'newReviewObject' ==========
   void _updatecarWithNewReview(Map<String, dynamic> reviewData) {
-    final String carId = reviewData['carId'];
-    final Map<String, dynamic> newReview = reviewData['review'];
-    final double newRating = reviewData['newRating'];
-    final int newReviewCount = reviewData['reviewCount'];
+    final String carId = reviewData['carId']?.toString() ?? '';
+    final Map<String, dynamic> newReview = reviewData['review'] ?? {};
+    final double newRating = (reviewData['newRating'] as num?)?.toDouble() ?? 0.0;
+    final int newReviewCount = (reviewData['reviewCount'] as num?)?.toInt() ?? 0;
+
+    final CarReview newReviewObject = CarReview(
+      id: newReview['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      userName: newReview['userName'] ?? 'User',
+      rating: (newReview['rating'] as num?)?.toDouble() ?? 5.0,
+      comment: newReview['comment'] ?? '',
+      createdAt: newReview['createdAt'] != null
+          ? DateTime.tryParse(newReview['createdAt']) ?? DateTime.now()
+          : DateTime.now(),
+    );
+
+    void updateCarInList(List<Map<String, dynamic>> list) {
+      final carIndex = list.indexWhere((car) => car['id']?.toString() == carId);
+      if (carIndex != -1) {
+        final reviewsList = List<CarReview>.from(list[carIndex]['reviews'] ?? []);
+        final existingIndex = reviewsList.indexWhere((r) => r.id == newReviewObject.id || (r.userName == newReviewObject.userName && r.comment == newReviewObject.comment));
+        if (existingIndex != -1) {
+          reviewsList[existingIndex] = newReviewObject;
+        } else {
+          reviewsList.insert(0, newReviewObject);
+        }
+        list[carIndex]['reviews'] = reviewsList;
+        final totalRating = reviewsList.fold<double>(0, (sum, r) => sum + r.rating);
+        final calculatedRating = reviewsList.isNotEmpty
+            ? double.parse((totalRating / reviewsList.length).toStringAsFixed(1))
+            : newRating;
+        list[carIndex]['rating'] = calculatedRating;
+        list[carIndex]['reviewCount'] = newReviewCount > 0 ? newReviewCount : reviewsList.length;
+      }
+    }
 
     setState(() {
-      final carIndex = _allcars.indexWhere((car) => car['id'] == carId);
-      if (carIndex != -1) {
-        // FIX: Changed variable name from 'CarReview' to 'newReviewObject'
-        final CarReview newReviewObject = CarReview(
-          id: newReview['id'],
-          userName: newReview['userName'],
-          rating: (newReview['rating'] as num).toDouble(),
-          comment: newReview['comment'],
-          createdAt: DateTime.parse(newReview['createdAt']),
-        );
+      updateCarInList(_allcars);
+      updateCarInList(_nearbycars);
+      updateCarInList(_filteredcars);
 
-        final reviewsList = List<CarReview>.from(_allcars[carIndex]['reviews']);
-        reviewsList.insert(0, newReviewObject);
-        _allcars[carIndex]['reviews'] = reviewsList;
-        _allcars[carIndex]['rating'] = newRating;
-
-        final nearbyIndex = _nearbycars.indexWhere((b) => b['id'] == carId);
-        if (nearbyIndex != -1) {
-          _nearbycars[nearbyIndex]['reviews'] = reviewsList;
-          _nearbycars[nearbyIndex]['rating'] = newRating;
+      if (_activeDetailCar != null && _activeDetailCar!['id']?.toString() == carId) {
+        final reviewsList = List<CarReview>.from(_activeDetailCar!['reviews'] ?? []);
+        final existingIndex = reviewsList.indexWhere((r) => r.id == newReviewObject.id || (r.userName == newReviewObject.userName && r.comment == newReviewObject.comment));
+        if (existingIndex != -1) {
+          reviewsList[existingIndex] = newReviewObject;
+        } else {
+          reviewsList.insert(0, newReviewObject);
         }
-
-        final filteredIndex = _filteredcars.indexWhere((b) => b['id'] == carId);
-        if (filteredIndex != -1) {
-          _filteredcars[filteredIndex]['reviews'] = reviewsList;
-          _filteredcars[filteredIndex]['rating'] = newRating;
-        }
+        _activeDetailCar!['reviews'] = reviewsList;
+        final totalRating = reviewsList.fold<double>(0, (sum, r) => sum + r.rating);
+        final calculatedRating = reviewsList.isNotEmpty
+            ? double.parse((totalRating / reviewsList.length).toStringAsFixed(1))
+            : newRating;
+        _activeDetailCar!['rating'] = calculatedRating;
+        _activeDetailCar!['reviewCount'] = newReviewCount > 0 ? newReviewCount : reviewsList.length;
       }
     });
+
+    // Notify the open modal bottom sheet in real time!
+    if (_activeCarDetailSetState != null && _activeDetailCarId == carId) {
+      _activeCarDetailSetState!(() {});
+    }
 
     _showSnackBar('New review added for this car!');
   }
@@ -1232,7 +1356,14 @@ class _RidersDashboardState extends State<RidersDashboard> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(5, (index) {
-                    return GestureDetector(
+                    final reviews = carData['reviews'] is List<CarReview> ? carData['reviews'] as List<CarReview> : <CarReview>[];
+    double displayRating = rating;
+    if (displayRating == 0.0 && reviews.isNotEmpty) {
+      final totalStars = reviews.fold<double>(0.0, (sum, r) => sum + r.rating);
+      displayRating = double.parse((totalStars / reviews.length).toStringAsFixed(1));
+    }
+
+    return GestureDetector(
                       onTap: () {
                         setStatePopup(() {
                           selectedRating = (index + 1).toDouble();
@@ -1251,7 +1382,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  selectedRating > 0 ? '${selectedRating.toStringAsFixed(1)} stars' : 'Tap to rate (optional)',
+                  selectedRating > 0 ? '${selectedRating.toStringAsFixed(1)} stars' : 'Tap to rate (1 to 5 stars)',
                   style: const TextStyle(
                     fontSize: 14,
                     color: Color(0xFF7D6C62),
@@ -1331,7 +1462,17 @@ class _RidersDashboardState extends State<RidersDashboard> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: ElevatedButton(
-                            onPressed: isSubmitting ? null : () {
+                            onPressed: isSubmitting ? null : () async {
+                              if (selectedRating <= 0) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Please select a star rating by tapping on the stars'),
+                                    backgroundColor: Color(0xFFFF5A1F),
+                                  ),
+                                );
+                                return;
+                              }
+
                               if (reviewController.text.trim().isEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
@@ -1344,7 +1485,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
 
                               final userName = widget.userData['fullname']?.split(' ')[0] ?? 'User';
                               Navigator.pop(context);
-                              _addReview(
+                              await _addReview(
                                   car,
                                   userName,
                                   selectedRating,
@@ -1390,14 +1531,42 @@ class _RidersDashboardState extends State<RidersDashboard> {
   }
 
   void _showcarDetailPopup(Map<String, dynamic> car) {
+    _activeDetailCarId = car['id']?.toString();
+    _activeDetailCar = car;
+    int currentImageIndex = 0;
+
+    // Fetch live real-time reviews immediately for this car from backend
+    _fetchCarReviews(car['id']?.toString() ?? '');
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
         builder: (context, setStatePopup) {
-          int currentImageIndex = 0;
-          final reviewsList = car['reviews'] as List<CarReview>;
+          _activeCarDetailSetState = setStatePopup;
+
+          // Always get latest reviews list
+          List<CarReview> reviewsList = [];
+          if (car['reviews'] is List<CarReview>) {
+            reviewsList = car['reviews'] as List<CarReview>;
+          } else if (car['reviews'] is List) {
+            reviewsList = (car['reviews'] as List).map((r) {
+              if (r is CarReview) return r;
+              return CarReview.fromJson(r as Map<String, dynamic>);
+            }).toList();
+            car['reviews'] = reviewsList;
+          }
+
+          // Calculate dynamic average rating from reviews if available
+          double displayRating = 0.0;
+          if (reviewsList.isNotEmpty) {
+            final double totalStars = reviewsList.fold<double>(0.0, (sum, r) => sum + r.rating);
+            displayRating = double.parse((totalStars / reviewsList.length).toStringAsFixed(1));
+            car['rating'] = displayRating;
+          } else if (car['rating'] != null && (car['rating'] as num) > 0) {
+            displayRating = (car['rating'] as num).toDouble();
+          }
 
           return Container(
             height: MediaQuery.of(context).size.height * 0.85,
@@ -1517,7 +1686,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                                   const Icon(Icons.star, size: 18, color: Color(0xFFFF5A1F)),
                                   const SizedBox(width: 4),
                                   Text(
-                                    car['rating'].toStringAsFixed(1),
+                                    displayRating.toStringAsFixed(1),
                                     style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
@@ -1843,7 +2012,11 @@ class _RidersDashboardState extends State<RidersDashboard> {
           );
         },
       ),
-    );
+    ).whenComplete(() {
+      _activeCarDetailSetState = null;
+      _activeDetailCarId = null;
+      _activeDetailCar = null;
+    });
   }
 
   // ========== RIDES METHODS ==========
@@ -3372,6 +3545,13 @@ class _RidersDashboardState extends State<RidersDashboard> {
     final Color cardBg = isAlternate ? const Color(0xFFF7E9DF) : const Color(0xFFFAF7F4);
     final Color innerBg = isAlternate ? const Color(0xFFFAF7F4) : const Color(0xFFF7E9DF);
 
+    final reviews = carData['reviews'] is List<CarReview> ? carData['reviews'] as List<CarReview> : <CarReview>[];
+    double displayRating = rating;
+    if (displayRating == 0.0 && reviews.isNotEmpty) {
+      final totalStars = reviews.fold<double>(0.0, (sum, r) => sum + r.rating);
+      displayRating = double.parse((totalStars / reviews.length).toStringAsFixed(1));
+    }
+
     return GestureDetector(
       onTap: () {
         _showcarDetailPopup(carData);
@@ -3454,7 +3634,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                   const Icon(Icons.star, size: 11, color: Color(0xFFFF5A1F)),
                   const SizedBox(width: 3),
                   Text(
-                    rating.toStringAsFixed(1),
+                    displayRating.toStringAsFixed(1),
                     style: const TextStyle(fontSize: 11, color: Color(0xFF2B1B12), fontWeight: FontWeight.w500),
                   ),
                   const SizedBox(width: 6),
@@ -3502,6 +3682,13 @@ class _RidersDashboardState extends State<RidersDashboard> {
   Widget _buildAvailablecarCard({
     required Map<String, dynamic> carData,
   }) {
+    final reviews = carData['reviews'] is List<CarReview> ? carData['reviews'] as List<CarReview> : <CarReview>[];
+    double displayRating = (carData['rating'] as num?)?.toDouble() ?? 0.0;
+    if (displayRating == 0.0 && reviews.isNotEmpty) {
+      final totalStars = reviews.fold<double>(0.0, (sum, r) => sum + r.rating);
+      displayRating = double.parse((totalStars / reviews.length).toStringAsFixed(1));
+    }
+
     return GestureDetector(
       onTap: () {
         _showcarDetailPopup(carData);
@@ -3584,7 +3771,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                       const Icon(Icons.star, size: 14, color: Color(0xFFFF5A1F)),
                       const SizedBox(width: 4),
                       Text(
-                        carData['rating'].toStringAsFixed(1),
+                        displayRating.toStringAsFixed(1),
                         style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF2B1B12)),
                       ),
                       const SizedBox(width: 8),
