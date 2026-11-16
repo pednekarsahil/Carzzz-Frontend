@@ -551,7 +551,7 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                               ),
                               children: [
                                 TileLayer(
-                                  urlTemplate: 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+                                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                                   userAgentPackageName: 'com.carzzz.app',
                                 ),
                                 MarkerLayer(

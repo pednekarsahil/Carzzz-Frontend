@@ -2434,7 +2434,7 @@ class _PartnerDashboardState extends State<PartnerDashboard> with SingleTickerPr
             ),
             children: [
               TileLayer(
-                urlTemplate: 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.carzzz.app',
                 maxZoom: 19,
                 minZoom: 3,

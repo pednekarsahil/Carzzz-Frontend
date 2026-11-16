@@ -2265,7 +2265,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
     return LatLng(userCenter.latitude + dLat, userCenter.longitude + dLng);
   }
 
-  Widget _buildCircularRadarMap() {
+  Widget _buildNearbyCarsMap() {
     final LatLng center = _currentPosition != null
         ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude)
         : _defaultRadarCenter;
@@ -2291,8 +2291,8 @@ class _RidersDashboardState extends State<RidersDashboard> {
           alignment: Alignment.center,
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: 42,
+              height: 42,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: const Color(0xFFFF5A1F).withOpacity(0.22),
@@ -2330,15 +2330,15 @@ class _RidersDashboardState extends State<RidersDashboard> {
       markers.add(
         Marker(
           point: pos,
-          width: 54,
-          height: 54,
+          width: 58,
+          height: 58,
           child: GestureDetector(
             onTap: () => _showcarDetailPopup(car),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(5),
+                  padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: const LinearGradient(
@@ -2363,19 +2363,19 @@ class _RidersDashboardState extends State<RidersDashboard> {
                 ),
                 Container(
                   margin: const EdgeInsets.only(top: 2),
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                   decoration: BoxDecoration(
                     color: const Color(0xDD1E140E),
                     borderRadius: BorderRadius.circular(4),
                     border: Border.all(color: const Color(0x66FF5A1F), width: 0.8),
                   ),
                   child: Text(
-                    car['name'] != null && car['name'].toString().length > 7
-                        ? '${car['name'].toString().substring(0, 6)}..'
+                    car['name'] != null && car['name'].toString().length > 8
+                        ? '${car['name'].toString().substring(0, 7)}..'
                         : (car['name']?.toString() ?? 'Car'),
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 8,
+                      fontSize: 9,
                       fontWeight: FontWeight.w600,
                     ),
                     maxLines: 1,
@@ -2414,7 +2414,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF261912),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: Colors.white.withOpacity(0.12),
           width: 1.2,
@@ -2433,7 +2433,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Header info
           Row(
@@ -2448,14 +2448,14 @@ class _RidersDashboardState extends State<RidersDashboard> {
                       color: const Color(0xFFFF5A1F).withOpacity(0.18),
                       border: Border.all(color: const Color(0xFFFF5A1F).withOpacity(0.4)),
                     ),
-                    child: const Icon(Icons.radar, color: Color(0xFFFF5A1F), size: 18),
+                    child: const Icon(Icons.map, color: Color(0xFFFF5A1F), size: 18),
                   ),
                   const SizedBox(width: 10),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Nearby Cars Radar',
+                        'Nearby Cars Map',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -2474,7 +2474,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                   ),
                 ],
               ),
-              // Recenter action button (3D styled)
+              // Recenter action button
               InkWell(
                 onTap: () {
                   _radarMapController.move(center, 12.0);
@@ -2513,98 +2513,141 @@ class _RidersDashboardState extends State<RidersDashboard> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
-          // Circular Map with 3D Beveled Ring
-          Center(
-            child: Container(
-              width: 270,
-              height: 270,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFFFF7A45),
-                    Color(0xFFE04508),
-                    Color(0xFF8B2500),
-                  ],
+          // Complete Rectangular Map Frame
+          Container(
+            height: 240,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFFFF5A1F).withOpacity(0.5),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.4),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFFF5A1F).withOpacity(0.3),
-                    blurRadius: 18,
-                    spreadRadius: 2,
-                    offset: const Offset(0, 4),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14.5),
+              child: Stack(
+                children: [
+                  FlutterMap(
+                    mapController: _radarMapController,
+                    options: MapOptions(
+                      initialCenter: center,
+                      initialZoom: 12.0,
+                      minZoom: 8.0,
+                      maxZoom: 17.0,
+                      interactionOptions: const InteractionOptions(
+                        flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+                      ),
+                    ),
+                    children: [
+                      TileLayer(
+                        urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName: 'com.carzzz.app',
+                        maxZoom: 19,
+                        minZoom: 3,
+                      ),
+                      CircleLayer(circles: circles),
+                      MarkerLayer(markers: markers),
+                    ],
                   ),
-                  const BoxShadow(
-                    color: Colors.black54,
-                    blurRadius: 12,
-                    offset: Offset(0, 8),
+
+                  // Floating 10 km Radius Badge
+                  Positioned(
+                    top: 10,
+                    right: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xEE1E140E),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFFF5A1F), width: 1.0),
+                        boxShadow: const [
+                          BoxShadow(color: Colors.black38, blurRadius: 4, offset: Offset(0, 2)),
+                        ],
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.radar, color: Color(0xFFFF5A1F), size: 12),
+                          SizedBox(width: 4),
+                          Text(
+                            '10 km Radius',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Floating Zoom Controls
+                  Positioned(
+                    bottom: 10,
+                    right: 10,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        InkWell(
+                          onTap: () {
+                            final currentZoom = _radarMapController.camera.zoom;
+                            _radarMapController.move(_radarMapController.camera.center, currentZoom + 1.0);
+                          },
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: const Color(0xEE1E140E),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0x44FFFFFF), width: 1.0),
+                              boxShadow: const [
+                                BoxShadow(color: Colors.black38, blurRadius: 4, offset: Offset(0, 2)),
+                              ],
+                            ),
+                            child: const Icon(Icons.add, color: Colors.white, size: 18),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        InkWell(
+                          onTap: () {
+                            final currentZoom = _radarMapController.camera.zoom;
+                            _radarMapController.move(_radarMapController.camera.center, currentZoom - 1.0);
+                          },
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: const Color(0xEE1E140E),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0x44FFFFFF), width: 1.0),
+                              boxShadow: const [
+                                BoxShadow(color: Colors.black38, blurRadius: 4, offset: Offset(0, 2)),
+                              ],
+                            ),
+                            child: const Icon(Icons.remove, color: Colors.white, size: 18),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-              padding: const EdgeInsets.all(5),
-              child: ClipOval(
-                child: Stack(
-                  children: [
-                    FlutterMap(
-                      mapController: _radarMapController,
-                      options: MapOptions(
-                        initialCenter: center,
-                        initialZoom: 12.0,
-                        minZoom: 9.0,
-                        maxZoom: 16.0,
-                        interactionOptions: const InteractionOptions(
-                          flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-                        ),
-                      ),
-                      children: [
-                        TileLayer(
-                          urlTemplate: 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-                          userAgentPackageName: 'com.carzzz.app',
-                          maxZoom: 19,
-                          minZoom: 3,
-                        ),
-                        CircleLayer(circles: circles),
-                        MarkerLayer(markers: markers),
-                      ],
-                    ),
-                    // Distance badge
-                    Positioned(
-                      top: 10,
-                      right: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.7),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFFF5A1F), width: 0.8),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.radar, color: Color(0xFFFF5A1F), size: 10),
-                            SizedBox(width: 3),
-                            Text(
-                              '10 km',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
 
           // Legend & hint
           Row(
@@ -3170,8 +3213,8 @@ class _RidersDashboardState extends State<RidersDashboard> {
                   ),
                 ),
 
-              // Circular 10km Radius Radar Map
-              _buildCircularRadarMap(),
+              // Rectangular 10km Radius Map
+              _buildNearbyCarsMap(),
               const SizedBox(height: 16),
 
               // Nearby Cars Section
