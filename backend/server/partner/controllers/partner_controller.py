@@ -1555,6 +1555,16 @@ async def update_partner_car(request: Request, car_id: str):
             }
         )
     
+    # Check if car is currently rented
+    if car.get('status') == 'rented':
+        return JSONResponse(
+            status_code=400,
+            content={
+                "success": False,
+                "message": "Cannot edit vehicle while it is currently rented."
+            }
+        )
+    
     # Update car
     update_data = {k: v for k, v in body.items() if v is not None}
     update_data["updatedAt"] = datetime.utcnow()
@@ -1794,6 +1804,14 @@ async def update_car_status(request: Request, car_id: str):
         )
     
     old_status = car.get('status')
+    if old_status == 'rented' and status != 'rented':
+        return JSONResponse(
+            status_code=400,
+            content={
+                "success": False,
+                "message": "Cannot change status while vehicle is currently rented."
+            }
+        )
     
     # Update status
     await car_collection.update_one(

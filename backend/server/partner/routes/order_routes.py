@@ -949,7 +949,7 @@ async def complete_ride(
             status_code=200,
             content={
                 "success": True,
-                "message": "Ride completed successfully and scooty returned!",
+                "message": "Ride completed successfully and car returned!",
                 "orderId": order_id
             }
         )

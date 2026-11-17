@@ -1,4 +1,4 @@
-// FILE: riders_dashboard.dart
+﻿// FILE: riders_dashboard.dart
 // PURPOSE: Main dashboard page for riders - DARK MODE ONLY
 // ALL BACKEND LOGIC, API CALLS, SOCKET CONNECTIONS, AND FUNCTIONALITY REMAIN UNCHANGED
 // ONLY UI/UX HAS BEEN REDESIGNED - REMOVED DARK MODE TOGGLE
@@ -21,6 +21,7 @@ import '../widgets/app_icon_or_image.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 
 class RidersDashboard extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -134,6 +135,8 @@ class _RidersDashboardState extends State<RidersDashboard> {
   static const int _connectionTimeout = 30;
   static const int _autoRefreshInterval = 30;
   static const bool _usePhysicalDevice = false;
+  static const String _razorpayKey = 'rzp_test_ScRentKEtlnMIH';
+  Razorpay? _endRideRazorpay;
 
   String get _baseUrl {
     if (_usePhysicalDevice) {
@@ -275,6 +278,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
 
   @override
   void dispose() {
+    _endRideRazorpay?.clear();
     _autoRefreshTimer?.cancel();
     _ridesRefreshTimer?.cancel();
     _reservationCheckTimer?.cancel();
@@ -2549,6 +2553,56 @@ class _RidersDashboardState extends State<RidersDashboard> {
     bool isPayingExtra = false;
     bool isExtraPaid = !isOverdue;
     String? extraPaymentId;
+    bool isSheetMounted = true;
+    StateSetter? currentModalSetState;
+
+    final Razorpay extraRazorpay = Razorpay();
+    _endRideRazorpay?.clear();
+    _endRideRazorpay = extraRazorpay;
+
+    extraRazorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, (PaymentSuccessResponse response) {
+      if (isSheetMounted && currentModalSetState != null) {
+        currentModalSetState!(() {
+          isPayingExtra = false;
+          isExtraPaid = true;
+          extraPaymentId = response.paymentId ?? 'pay_ext_${DateTime.now().millisecondsSinceEpoch}';
+        });
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Remaining amount of ₹${extraAmount.toStringAsFixed(2)} paid successfully! Ref: ${response.paymentId ?? ""}',
+            ),
+            backgroundColor: const Color(0xFF2E7D32),
+          ),
+        );
+      }
+    });
+
+    extraRazorpay.on(Razorpay.EVENT_PAYMENT_ERROR, (PaymentFailureResponse response) {
+      if (isSheetMounted && currentModalSetState != null) {
+        currentModalSetState!(() {
+          isPayingExtra = false;
+        });
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Payment failed: ${response.message ?? "Transaction was not completed"}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    });
+
+    extraRazorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, (ExternalWalletResponse response) {
+      if (isSheetMounted && currentModalSetState != null) {
+        currentModalSetState!(() {
+          isPayingExtra = false;
+        });
+      }
+    });
 
     showModalBottomSheet(
       context: dialogContext,
@@ -2557,6 +2611,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
       builder: (sheetContext) {
         return StatefulBuilder(
           builder: (context, setModalState) {
+            currentModalSetState = setModalState;
             final bool canConfirmEnd = afterRideImages.isNotEmpty && isExtraPaid && !isSubmitting;
 
             Future<void> pickImage() async {
@@ -2619,7 +2674,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
-                            Icons.two_wheeler,
+                            Icons.directions_car,
                             color: Color(0xFF2E7D32),
                             size: 24,
                           ),
@@ -2668,7 +2723,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               const Text(
-                                'After-Ride Scooty Photos *',
+                                'After-Ride Car Photos *',
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
@@ -2689,7 +2744,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                           ),
                           const SizedBox(height: 4),
                           const Text(
-                            'Please add clear photos showing the scooty condition after your ride.',
+                            'Please add clear photos showing the car condition after your ride.',
                             style: TextStyle(
                               fontSize: 12,
                               color: Color(0xFF7D6C62),
@@ -2955,26 +3010,47 @@ class _RidersDashboardState extends State<RidersDashboard> {
                                         child: InkWell(
                                           onTap: isPayingExtra
                                               ? null
-                                              : () async {
+                                              : () {
                                                   setModalState(() {
                                                     isPayingExtra = true;
                                                   });
-                                                  // Simulate Razorpay payment confirmation
-                                                  await Future.delayed(const Duration(milliseconds: 1200));
-                                                  setModalState(() {
-                                                    isPayingExtra = false;
-                                                    isExtraPaid = true;
-                                                    extraPaymentId = 'pay_ext_${DateTime.now().millisecondsSinceEpoch}';
-                                                  });
-                                                  if (mounted) {
-                                                    ScaffoldMessenger.of(context).showSnackBar(
-                                                      SnackBar(
-                                                        content: Text(
-                                                          'Remaining amount of ₹${extraAmount.toStringAsFixed(2)} paid successfully!',
+
+                                                  final int amountInPaise = (extraAmount * 100).round();
+                                                  final options = {
+                                                    'key': _razorpayKey,
+                                                    'amount': amountInPaise > 0 ? amountInPaise : 100,
+                                                    'name': 'Carrzzz',
+                                                    'description': 'Overdue Rental Payment - ${ride.carName.isNotEmpty ? ride.carName : ride.carModel}',
+                                                    'prefill': {
+                                                      'contact': widget.userData['phone'] ?? widget.userData['phoneNumber'] ?? '9876543210',
+                                                      'email': widget.userData['email'] ?? 'rider@example.com',
+                                                      'name': widget.userData['fullname'] ?? widget.userData['name'] ?? 'Rider',
+                                                    },
+                                                    'theme': {
+                                                      'color': '#FF5A1F',
+                                                    },
+                                                    'external': {
+                                                      'wallets': ['paytm']
+                                                    }
+                                                  };
+
+                                                  try {
+                                                    extraRazorpay.open(options);
+                                                  } catch (e) {
+                                                    print('Error opening Razorpay for overdue: $e');
+                                                    if (isSheetMounted) {
+                                                      setModalState(() {
+                                                        isPayingExtra = false;
+                                                      });
+                                                    }
+                                                    if (mounted) {
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                        SnackBar(
+                                                          content: Text('Could not open payment gateway: $e'),
+                                                          backgroundColor: Colors.red,
                                                         ),
-                                                        backgroundColor: const Color(0xFF2E7D32),
-                                                      ),
-                                                    );
+                                                      );
+                                                    }
                                                   }
                                                 },
                                           borderRadius: BorderRadius.circular(12),
@@ -3161,7 +3237,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                                                         SizedBox(width: 8),
                                                         Expanded(
                                                           child: Text(
-                                                            'Ride ended successfully! Scooty returned.',
+                                                            'Ride ended successfully! Car returned.',
                                                             style: TextStyle(fontWeight: FontWeight.bold),
                                                           ),
                                                         ),
@@ -3255,7 +3331,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                               children: [
                                 if (afterRideImages.isEmpty)
                                   const Text(
-                                    '• Please upload at least 1 after-ride photo of the scooty',
+                                    '• Please upload at least 1 after-ride photo of the car',
                                     style: TextStyle(fontSize: 11.5, color: Color(0xFFEF4444)),
                                   ),
                                 if (isOverdue && !isExtraPaid)
@@ -3278,7 +3354,14 @@ class _RidersDashboardState extends State<RidersDashboard> {
           },
         );
       },
-    );
+    ).whenComplete(() {
+      isSheetMounted = false;
+      currentModalSetState = null;
+      extraRazorpay.clear();
+      if (_endRideRazorpay == extraRazorpay) {
+        _endRideRazorpay = null;
+      }
+    });
   }
 
   void _showLogoutDialog() {

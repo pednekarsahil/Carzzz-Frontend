@@ -1835,6 +1835,15 @@ class _PartnerDashboardState extends State<PartnerDashboard> with SingleTickerPr
   }
 
   void _navigateToEditcarScreen(Map<String, dynamic> car) async {
+    final bool isCarRented = (car['status'] ?? '').toString().toLowerCase() == 'rented';
+    if (isCarRented) {
+      _showSnackBar(
+        'Cannot edit vehicle while it is rented. Editing is disabled until the ride ends.',
+        const Color(0xFFEF4444),
+      );
+      return;
+    }
+
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -1855,6 +1864,7 @@ class _PartnerDashboardState extends State<PartnerDashboard> with SingleTickerPr
   }
 
   Widget _buildcarCard(Map<String, dynamic> car) {
+    final bool isCarRented = (car['status'] ?? '').toString().toLowerCase() == 'rented';
     Color statusColor;
     String statusText;
     switch (car['status']) {
@@ -2015,53 +2025,79 @@ class _PartnerDashboardState extends State<PartnerDashboard> with SingleTickerPr
                   child: Container(
                     padding: const EdgeInsets.only(bottom: 3.5),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFCC3F0C),
+                      color: isCarRented ? const Color(0xFF8A7A70) : const Color(0xFFCC3F0C),
                       borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFFCC3F0C).withOpacity(0.35),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
+                      boxShadow: isCarRented
+                          ? null
+                          : [
+                              BoxShadow(
+                                color: const Color(0xFFCC3F0C).withOpacity(0.35),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
                     ),
                     child: Material(
                       color: Colors.transparent,
                       child: InkWell(
                         onTap: () {
+                          if (isCarRented) {
+                            _showSnackBar(
+                              'Cannot edit vehicle while it is rented. Editing is disabled until ride ends.',
+                              const Color(0xFFEF4444),
+                            );
+                            return;
+                          }
                           _navigateToEditcarScreen(car);
                         },
                         borderRadius: BorderRadius.circular(12),
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [Color(0xFFFF7A47), Color(0xFFFF5A1F), Color(0xFFE64A12)],
-                              stops: [0.0, 0.45, 1.0],
-                            ),
+                            gradient: isCarRented
+                                ? const LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [Color(0xFFB5A496), Color(0xFF9E8E81)],
+                                  )
+                                : const LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [Color(0xFFFF7A47), Color(0xFFFF5A1F), Color(0xFFE64A12)],
+                                    stops: [0.0, 0.45, 1.0],
+                                  ),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: Colors.white.withOpacity(0.35),
                               width: 1,
                             ),
                           ),
-                          child: const Text(
-                            'Edit',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              fontSize: 14,
-                              shadows: [
-                                Shadow(
-                                  color: Color(0x66000000),
-                                  offset: Offset(0, 1),
-                                  blurRadius: 2,
-                                ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (isCarRented) ...[
+                                const Icon(Icons.lock_outline, size: 14, color: Colors.white),
+                                const SizedBox(width: 4),
                               ],
-                            ),
+                              Text(
+                                isCarRented ? 'Edit (Rented)' : 'Edit',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white.withOpacity(isCarRented ? 0.85 : 1.0),
+                                  fontSize: 14,
+                                  shadows: isCarRented
+                                      ? null
+                                      : const [
+                                          Shadow(
+                                            color: Color(0x66000000),
+                                            offset: Offset(0, 1),
+                                            blurRadius: 2,
+                                          ),
+                                        ],
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -2070,10 +2106,21 @@ class _PartnerDashboardState extends State<PartnerDashboard> with SingleTickerPr
                 ),
                 const SizedBox(width: 8),
                 IconButton(
-                  onPressed: () {
-                    _showDeleteConfirmation(car);
-                  },
-                  icon: const Icon(Icons.delete, color: Color(0xFF2B1B12), size: 20),
+                  onPressed: isCarRented
+                      ? () {
+                          _showSnackBar(
+                            'Cannot delete vehicle while it is rented.',
+                            const Color(0xFFEF4444),
+                          );
+                        }
+                      : () {
+                          _showDeleteConfirmation(car);
+                        },
+                  icon: Icon(
+                    Icons.delete,
+                    color: isCarRented ? const Color(0xFFB5A496) : const Color(0xFF2B1B12),
+                    size: 20,
+                  ),
                 ),
               ],
             ),

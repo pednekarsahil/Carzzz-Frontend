@@ -13,6 +13,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class PartnerEditcar extends StatefulWidget {
   final Map<String, dynamic> car;
@@ -47,6 +48,16 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
 
   // Track original image paths to detect changes
   List<String> _originalImagePaths = [];
+  bool _isSaving = false;
+
+  static const bool _usePhysicalDevice = false;
+  String get _baseUrl {
+    if (_usePhysicalDevice) {
+      return 'http://10.0.2.2:3000';
+    } else {
+      return 'https://carzzz-frontend.onrender.com';
+    }
+  }
 
   @override
   void initState() {
@@ -172,7 +183,7 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                     ),
                     const SizedBox(width: 12),
                     const Text(
-                      'Edit car',
+                      'Edit Car',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -198,6 +209,46 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        if (isRented)
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEE2E2),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: const Color(0xFFFCA5A5)),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.lock, color: Color(0xFFDC2626), size: 24),
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Vehicle Currently Rented',
+                                        style: TextStyle(
+                                          color: Color(0xFF991B1B),
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      SizedBox(height: 2),
+                                      Text(
+                                        'Adding or removing photos and editing details are disabled while the vehicle is rented.',
+                                        style: TextStyle(
+                                          color: Color(0xFFB91C1C),
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
                         // ========== STATUS MANAGEMENT SECTION - LIGHT MODE ==========
                         Container(
                           padding: const EdgeInsets.all(16),
@@ -220,7 +271,7 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
-                                'car Status',
+                                'Car Status',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -298,10 +349,11 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
 
                         // ========== FORM FIELDS - DARK MODE ==========
                         _buildTextField(
-                          label: 'car Model *',
-                          hint: 'e.g., Honda Activa 125',
+                          label: 'Car Model *',
+                          hint: 'e.g., Honda City',
                           icon: Icons.directions_car,
                           initialValue: _carModel,
+                          enabled: !isRented,
                           onSaved: (value) => _carModel = value?.trim() ?? '',
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
@@ -313,9 +365,10 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                         const SizedBox(height: 16),
 
                         _buildDropdownField(
-                          label: 'car Type *',
+                          label: 'Car Type *',
                           icon: Icons.category,
                           value: _carType,
+                          enabled: !isRented,
                           items: const [
                             DropdownMenuItem(value: 'Car', child: Text('Car')),
                             DropdownMenuItem(value: 'Sports Car', child: Text('Sports Car')),
@@ -335,6 +388,7 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                           label: 'Fuel Type *',
                           icon: Icons.local_gas_station,
                           value: _fuelType,
+                          enabled: !isRented,
                           items: const [
                             DropdownMenuItem(value: 'Petrol', child: Text('Petrol')),
                             DropdownMenuItem(value: 'Electric', child: Text('Electric')),
@@ -351,9 +405,10 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
 
                         _buildTextField(
                           label: 'Daily Rate (₹) *',
-                          hint: 'e.g., 199',
+                          hint: 'e.g., 1499',
                           icon: Icons.currency_rupee,
                           initialValue: _dailyRate,
+                          enabled: !isRented,
                           keyboardType: TextInputType.number,
                           onSaved: (value) => _dailyRate = value?.trim() ?? '',
                           validator: (value) {
@@ -368,23 +423,38 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                         ),
                         const SizedBox(height: 16),
 
-                        // car Images
-                        const Text(
-                          'car Images (Max 6) *',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF2B1B12),
-                          ),
+                        // Car Images
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Car Images (Max 6) *',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF2B1B12),
+                              ),
+                            ),
+                            if (!isRented)
+                              Text(
+                                '/6 photos',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF7D6C62),
+                                ),
+                              ),
+                          ],
                         ),
                         const SizedBox(height: 8),
                         SizedBox(
                           height: 120,
                           child: ListView.builder(
                             scrollDirection: Axis.horizontal,
-                            itemCount: _carImages.length + 1,
+                            itemCount: isRented ? _carImages.length : _carImages.length + 1,
                             itemBuilder: (context, index) {
                               if (index == _carImages.length) {
+                                if (isRented) return const SizedBox.shrink();
                                 return GestureDetector(
                                   onTap: _addImage,
                                   child: Container(
@@ -398,9 +468,9 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                                     child: const Column(
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
-                                        Icon(Icons.add_photo_alternate, size: 40, color: Color(0xFFFF5A1F)),
+                                        Icon(Icons.add_photo_alternate, size: 36, color: Color(0xFFFF5A1F)),
                                         SizedBox(height: 4),
-                                        Text('Add Image', style: TextStyle(fontSize: 12, color: Color(0xFF7D6C62))),
+                                        Text('Add Photo', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF7D6C62))),
                                       ],
                                     ),
                                   ),
@@ -413,6 +483,7 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                                     margin: const EdgeInsets.only(right: 8),
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: const Color(0xFFE5D7C9)),
                                       image: DecorationImage(
                                         image: _carImages[index].path.startsWith('http')
                                             ? NetworkImage(_carImages[index].path) as ImageProvider
@@ -421,31 +492,32 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                                       ),
                                     ),
                                   ),
-                                  Positioned(
-                                    top: 4,
-                                    right: 4,
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          _carImages.removeAt(index);
-                                        });
-                                      },
-                                      child: Container(
-                                        padding: const EdgeInsets.all(2),
-                                        decoration: const BoxDecoration(
-                                          color: Colors.red,
-                                          shape: BoxShape.circle,
+                                  if (!isRented)
+                                    Positioned(
+                                      top: 4,
+                                      right: 12,
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            _carImages.removeAt(index);
+                                          });
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: const BoxDecoration(
+                                            color: Color(0xFFEF4444),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(Icons.close, size: 14, color: Colors.white),
                                         ),
-                                        child: const Icon(Icons.close, size: 16, color: Colors.white),
                                       ),
                                     ),
-                                  ),
                                 ],
                               );
                             },
                           ),
                         ),
-                        if (_carImages.isEmpty)
+                        if (_carImages.isEmpty && !isRented)
                           Padding(
                             padding: const EdgeInsets.only(top: 4),
                             child: Text(
@@ -460,6 +532,7 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                           hint: 'Describe your car...',
                           icon: Icons.description,
                           initialValue: _description,
+                          enabled: !isRented,
                           maxLines: 3,
                           onSaved: (value) => _description = value?.trim() ?? '',
                           validator: (value) {
@@ -483,7 +556,7 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                         const SizedBox(height: 8),
                         Container(
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFAF7F4),
+                            color: !isRented ? const Color(0xFFFAF7F4) : const Color(0xFFEBE3DB),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: const Color(0xFFE5D7C9),
@@ -496,19 +569,24 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                               isExpanded: true,
                               padding: const EdgeInsets.symmetric(horizontal: 16),
                               dropdownColor: const Color(0xFFFAF7F4),
-                              style: const TextStyle(color: Color(0xFF2B1B12)),
+                              style: TextStyle(color: !isRented ? const Color(0xFF2B1B12) : const Color(0xFF7D6C62)),
                               items: _offerOptions.map((offer) {
                                 return DropdownMenuItem(
                                   value: offer,
                                   child: Text(offer),
                                 );
                               }).toList(),
-                              onChanged: (value) {
-                                setState(() {
-                                  _selectedOffer = value!;
-                                });
-                              },
-                              icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF7D6C62)),
+                              onChanged: isRented
+                                  ? null
+                                  : (value) {
+                                      setState(() {
+                                        _selectedOffer = value!;
+                                      });
+                                    },
+                              icon: Icon(
+                                Icons.arrow_drop_down,
+                                color: !isRented ? const Color(0xFF7D6C62) : const Color(0xFF9E8E81),
+                              ),
                             ),
                           ),
                         ),
@@ -516,7 +594,7 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
 
                         // Location
                         const Text(
-                          'car Location *',
+                          'Car Location *',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -539,19 +617,21 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                               options: MapOptions(
                                 initialCenter: _carLocation,
                                 initialZoom: 14.0,
-                                onTap: (tapPosition, point) {
-                                  setState(() {
-                                    _carLocation = point;
-                                  });
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Location updated: ${point.latitude.toStringAsFixed(6)}, ${point.longitude.toStringAsFixed(6)}',
-                                      ),
-                                      duration: const Duration(seconds: 1),
-                                    ),
-                                  );
-                                },
+                                onTap: isRented
+                                    ? null
+                                    : (tapPosition, point) {
+                                        setState(() {
+                                          _carLocation = point;
+                                        });
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Location updated: , ',
+                                            ),
+                                            duration: const Duration(seconds: 1),
+                                          ),
+                                        );
+                                      },
                               ),
                               children: [
                                 TileLayer(
@@ -577,11 +657,13 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Tap on the map to update car location',
+                        Text(
+                          isRented
+                              ? 'Location updates are disabled while the vehicle is rented'
+                              : 'Tap on the map to update car location',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Color(0xFF7D6C62),
+                            color: isRented ? const Color(0xFFEF4444) : const Color(0xFF7D6C62),
                           ),
                         ),
                         const SizedBox(height: 32),
@@ -590,34 +672,55 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
                         Container(
                           width: double.infinity,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFF5A1F),
+                            color: isRented ? const Color(0xFFB5A496) : const Color(0xFFFF5A1F),
                             borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFFFF5A1F).withOpacity(0.3),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
+                            boxShadow: isRented
+                                ? null
+                                : [
+                                    BoxShadow(
+                                      color: const Color(0xFFFF5A1F).withOpacity(0.3),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
                           ),
                           child: ElevatedButton(
-                            onPressed: _saveChanges,
+                            onPressed: (isRented || _isSaving) ? null : _saveChanges,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.transparent,
                               foregroundColor: Colors.white,
+                              disabledForegroundColor: Colors.white.withOpacity(0.7),
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               shadowColor: Colors.transparent,
                             ),
-                            child: const Text(
-                              'Save Changes',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            child: _isSaving
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      if (isRented) ...[
+                                        const Icon(Icons.lock, size: 18, color: Colors.white),
+                                        const SizedBox(width: 8),
+                                      ],
+                                      Text(
+                                        isRented ? 'Cannot Edit (Vehicle Rented)' : 'Save Changes',
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                           ),
                         ),
                         const SizedBox(height: 20),
@@ -643,6 +746,7 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
     required String? Function(String?) validator,
     TextInputType keyboardType = TextInputType.text,
     int maxLines = 1,
+    bool enabled = true,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -658,7 +762,7 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: const Color(0xFFFAF7F4),
+            color: enabled ? const Color(0xFFFAF7F4) : const Color(0xFFEBE3DB),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: const Color(0xFFE5D7C9),
@@ -667,13 +771,20 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
           ),
           child: TextFormField(
             initialValue: initialValue,
+            enabled: enabled,
             keyboardType: keyboardType,
             maxLines: maxLines,
-            style: const TextStyle(color: Color(0xFF2B1B12)),
+            style: TextStyle(
+              color: enabled ? const Color(0xFF2B1B12) : const Color(0xFF7D6C62),
+            ),
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: const TextStyle(color: Color(0xFF9A8B82)),
-              prefixIcon: Icon(icon, color: const Color(0xFFFF5A1F), size: 20),
+              prefixIcon: Icon(
+                icon,
+                color: enabled ? const Color(0xFFFF5A1F) : const Color(0xFF9E8E81),
+                size: 20,
+              ),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
@@ -692,6 +803,7 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
     required List<DropdownMenuItem<String>> items,
     required void Function(String?) onChanged,
     required String? Function(String?) validator,
+    bool enabled = true,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -707,7 +819,7 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: const Color(0xFFFAF7F4),
+            color: enabled ? const Color(0xFFFAF7F4) : const Color(0xFFEBE3DB),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: const Color(0xFFE5D7C9),
@@ -717,16 +829,25 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
           child: DropdownButtonFormField<String>(
             value: value.isNotEmpty ? value : null,
             dropdownColor: const Color(0xFFFAF7F4),
-            style: const TextStyle(color: Color(0xFF2B1B12)),
+            style: TextStyle(
+              color: enabled ? const Color(0xFF2B1B12) : const Color(0xFF7D6C62),
+            ),
             decoration: InputDecoration(
-              prefixIcon: Icon(icon, color: const Color(0xFFFF5A1F), size: 20),
+              prefixIcon: Icon(
+                icon,
+                color: enabled ? const Color(0xFFFF5A1F) : const Color(0xFF9E8E81),
+                size: 20,
+              ),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
             items: items,
-            onChanged: onChanged,
+            onChanged: enabled ? onChanged : null,
             validator: validator,
-            icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF7D6C62)),
+            icon: Icon(
+              Icons.arrow_drop_down,
+              color: enabled ? const Color(0xFF7D6C62) : const Color(0xFF9E8E81),
+            ),
           ),
         ),
       ],
@@ -776,6 +897,17 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
   }
 
   Future<void> _addImage() async {
+    final bool isRented = _car['status'] == 'rented';
+    if (isRented) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cannot add photos while vehicle is rented'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     if (_carImages.length >= 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -786,16 +918,90 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
       return;
     }
 
-    final pickedFile = await _imagePicker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 80,
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFFFAF7F4),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFD6C7B8),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Add Car Photo',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2B1B12),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF5A1F).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.camera_alt, color: Color(0xFFFF5A1F)),
+              ),
+              title: const Text('Take Photo with Camera', style: TextStyle(fontWeight: FontWeight.w600)),
+              onTap: () async {
+                Navigator.pop(sheetContext);
+                final picked = await _imagePicker.pickImage(
+                  source: ImageSource.camera,
+                  maxWidth: 1200,
+                  maxHeight: 1200,
+                  imageQuality: 80,
+                );
+                if (picked != null) {
+                  setState(() {
+                    _carImages.add(picked);
+                  });
+                }
+              },
+            ),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF5A1F).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.photo_library, color: Color(0xFFFF5A1F)),
+              ),
+              title: const Text('Choose from Gallery', style: TextStyle(fontWeight: FontWeight.w600)),
+              onTap: () async {
+                Navigator.pop(sheetContext);
+                final picked = await _imagePicker.pickImage(
+                  source: ImageSource.gallery,
+                  maxWidth: 1200,
+                  maxHeight: 1200,
+                  imageQuality: 80,
+                );
+                if (picked != null) {
+                  setState(() {
+                    _carImages.add(picked);
+                  });
+                }
+              },
+            ),
+          ],
+        ),
+      ),
     );
-
-    if (pickedFile != null) {
-      setState(() {
-        _carImages.add(pickedFile);
-      });
-    }
   }
 
   Future<String?> _uploadImageToCloudinary(XFile imageFile) async {
@@ -828,6 +1034,17 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
   }
 
   Future<void> _saveChanges() async {
+    final bool isRented = _car['status'] == 'rented';
+    if (isRented) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cannot edit vehicle while it is rented.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) return;
     if (_carImages.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -840,42 +1057,92 @@ class _PartnerEditcarState extends State<PartnerEditcar> {
     }
     _formKey.currentState!.save();
 
-    // Upload any newly picked images to Cloudinary
-    final List<String> uploadedImageUrls = [];
-    for (int i = 0; i < _carImages.length; i++) {
-      final img = _carImages[i];
-      if (img.path.startsWith('http://') || img.path.startsWith('https://')) {
-        uploadedImageUrls.add(img.path);
-      } else {
-        final url = await _uploadImageToCloudinary(img);
-        if (url != null) {
-          uploadedImageUrls.add(url);
-        } else {
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      // Upload any newly picked images to Cloudinary
+      final List<String> uploadedImageUrls = [];
+      for (int i = 0; i < _carImages.length; i++) {
+        final img = _carImages[i];
+        if (img.path.startsWith('http://') || img.path.startsWith('https://')) {
           uploadedImageUrls.add(img.path);
+        } else {
+          final url = await _uploadImageToCloudinary(img);
+          if (url != null) {
+            uploadedImageUrls.add(url);
+          } else {
+            uploadedImageUrls.add(img.path);
+          }
         }
       }
+
+      // Create updated car data map
+      final updatedcar = {
+        'id': _car['id'],
+        'model': _carModel,
+        'type': _carType,
+        'fuelType': _fuelType,
+        'dailyRate': int.parse(_dailyRate),
+        'status': _car['status'],
+        'rating': _car['rating'],
+        'reviewCount': _car['reviewCount'],
+        'location': {
+          'lat': _carLocation.latitude,
+          'lng': _carLocation.longitude,
+        },
+        'images': uploadedImageUrls,
+        'description': _description,
+        'offer': _selectedOffer != 'No Offer' ? _selectedOffer : null,
+      };
+
+      // Persist updates to backend API
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final token = prefs.getString('partner_token');
+        if (token != null) {
+          final carId = _car['id'] ?? _car['_id'];
+          final response = await http.put(
+            Uri.parse('$_baseUrl/api/partner/cars/$carId'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+            },
+            body: json.encode(updatedcar),
+          ).timeout(const Duration(seconds: 30));
+
+          if (response.statusCode != 200) {
+            print('⚠️ Backend update responded with ${response.statusCode}: ${response.body}');
+          } else {
+            print('✅ Backend car updated successfully');
+          }
+        }
+      } catch (e) {
+        print('⚠️ Error syncing edit to backend: $e');
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Car updated successfully!'),
+            backgroundColor: Color(0xFF2E7D32),
+          ),
+        );
+        Navigator.pop(context, updatedcar);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving changes: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
-
-    // Create updated car data map
-    final updatedcar = {
-      'id': _car['id'],
-      'model': _carModel,
-      'type': _carType,
-      'fuelType': _fuelType,
-      'dailyRate': int.parse(_dailyRate),
-      'status': _car['status'],
-      'rating': _car['rating'],
-      'reviewCount': _car['reviewCount'],
-      'location': {
-        'lat': _carLocation.latitude,
-        'lng': _carLocation.longitude,
-      },
-      'images': uploadedImageUrls,
-      'description': _description,
-      'offer': _selectedOffer != 'No Offer' ? _selectedOffer : null,
-    };
-
-    // Return updated car to previous screen
-    Navigator.pop(context, updatedcar);
   }
 }
