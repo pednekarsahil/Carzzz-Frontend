@@ -2559,11 +2559,11 @@ class _RidersDashboardState extends State<RidersDashboard> {
           builder: (context, setModalState) {
             final bool canConfirmEnd = afterRideImages.isNotEmpty && isExtraPaid && !isSubmitting;
 
-            Future<void> pickImage(ImageSource source) async {
+            Future<void> pickImage() async {
               try {
                 final ImagePicker picker = ImagePicker();
                 final XFile? file = await picker.pickImage(
-                  source: source,
+                  source: ImageSource.camera,
                   maxWidth: 1200,
                   maxHeight: 1200,
                   imageQuality: 80,
@@ -2577,7 +2577,7 @@ class _RidersDashboardState extends State<RidersDashboard> {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Error selecting image: $e'),
+                      content: Text('Error taking photo: $e'),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -2697,65 +2697,47 @@ class _RidersDashboardState extends State<RidersDashboard> {
                           ),
                           const SizedBox(height: 12),
 
-                          // Add Photo Action Buttons
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed: () => pickImage(ImageSource.camera),
-                                  icon: const Icon(Icons.camera_alt, size: 18, color: Color(0xFFFF5A1F)),
-                                  label: const Text(
-                                    'Take Photo',
-                                    style: TextStyle(
-                                      color: Color(0xFF2B1B12),
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  style: OutlinedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(vertical: 11),
-                                    side: const BorderSide(color: Color(0xFFFF5A1F)),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    backgroundColor: const Color(0xFFFF5A1F).withOpacity(0.04),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed: () => pickImage(ImageSource.gallery),
-                                  icon: const Icon(Icons.photo_library, size: 18, color: Color(0xFF2E7D32)),
-                                  label: const Text(
-                                    'Gallery',
-                                    style: TextStyle(
-                                      color: Color(0xFF2B1B12),
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  style: OutlinedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(vertical: 11),
-                                    side: const BorderSide(color: Color(0xFF2E7D32)),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    backgroundColor: const Color(0xFF2E7D32).withOpacity(0.04),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-
-                          // Images Thumbnail Display
+                          // Images Thumbnail Display or Tap-to-Upload Box
                           if (afterRideImages.isNotEmpty)
                             SizedBox(
                               height: 96,
                               child: ListView.separated(
                                 scrollDirection: Axis.horizontal,
-                                itemCount: afterRideImages.length,
+                                itemCount: afterRideImages.length + 1,
                                 separatorBuilder: (_, __) => const SizedBox(width: 10),
                                 itemBuilder: (context, idx) {
+                                  if (idx == afterRideImages.length) {
+                                    return GestureDetector(
+                                      onTap: () => pickImage(),
+                                      child: Container(
+                                        width: 90,
+                                        height: 90,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFFF5A1F).withOpacity(0.06),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: const Color(0xFFFF5A1F).withOpacity(0.4),
+                                            width: 1.2,
+                                          ),
+                                        ),
+                                        child: const Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.add_a_photo, size: 24, color: Color(0xFFFF5A1F)),
+                                            SizedBox(height: 4),
+                                            Text(
+                                              'Add More',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
+                                                color: Color(0xFF2B1B12),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  }
                                   return Stack(
                                     clipBehavior: Clip.none,
                                     children: [
@@ -2800,38 +2782,42 @@ class _RidersDashboardState extends State<RidersDashboard> {
                               ),
                             )
                           else
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: const Color(0xFFE5D7C9),
-                                  style: BorderStyle.solid,
+                            GestureDetector(
+                              onTap: () => pickImage(),
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: const Color(0xFFE5D7C9),
+                                    style: BorderStyle.solid,
+                                  ),
                                 ),
-                              ),
-                              child: const Column(
-                                children: [
-                                  Icon(Icons.photo_camera_back_outlined, size: 32, color: Color(0xFFB5A496)),
-                                  SizedBox(height: 6),
-                                  Text(
-                                    'No photos added yet',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF7D6C62),
+                                child: const Column(
+                                  children: [
+                                    Icon(Icons.camera_alt_outlined, size: 36, color: Color(0xFFFF5A1F)),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      'No photos added yet',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF2B1B12),
+                                      ),
                                     ),
-                                  ),
-                                  SizedBox(height: 2),
-                                  Text(
-                                    'Upload at least 1 photo to complete ride',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Color(0xFF9E8E82),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      'Tap here to take photo with camera',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFFFF5A1F),
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
 
@@ -4750,7 +4736,9 @@ class _RidersDashboardState extends State<RidersDashboard> {
                                 ? (carData['photos'] as List).first.toString()
                                 : null,
                             iconColor: const Color(0xFFFF5A1F),
-                            size: 65,
+                            width: double.infinity,
+                            height: double.infinity,
+                            fit: BoxFit.cover, // <--- Fills the entire 140px card frame
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
