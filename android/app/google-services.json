@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "594188576862",
+    "project_id": "carzzz-1010e",
+    "storage_bucket": "carzzz-1010e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:594188576862:android:3ba158526080551e86eccf",
+        "android_client_info": {
+          "package_name": "com.example.carrzz"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "594188576862-jk66i9tvia4kua89smavnun88vmth5um.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.carrzz",
+            "certificate_hash": "9bbbcf48923568a7338ac534b02d423c4d226832"
+          }
+        },
+        {
+          "client_id": "594188576862-rr0ifej6n07bkbu75a5b54commrfugvr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCTiBbkkAWG19dp2f4USQi41b3amh_e818"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "594188576862-rr0ifej6n07bkbu75a5b54commrfugvr.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

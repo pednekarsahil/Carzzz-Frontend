@@ -111,7 +111,10 @@ flutter:
         - asset: assets/fonts/Poppins-Bold.ttf
           weight: 700
 
-flutter_icons:
+flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/icon.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "assets/iconbackground.png"
+  adaptive_icon_foreground: "assets/iconforeground.png"
